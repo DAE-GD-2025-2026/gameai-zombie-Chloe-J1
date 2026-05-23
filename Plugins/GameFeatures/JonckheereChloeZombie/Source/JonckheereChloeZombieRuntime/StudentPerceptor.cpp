@@ -3,6 +3,9 @@
 
 #include "StudentPerceptor.h"
 
+#include "BehaviorTree/BlackboardComponent.h"
+#include "AIController.h"
+
 
 UStudentPerceptor::UStudentPerceptor()
 {
@@ -17,10 +20,28 @@ void UStudentPerceptor::BeginPlay()
 	{
 		PerceptionComp->OnTargetPerceptionUpdated.AddDynamic(this, &UStudentPerceptor::OnPerceptionUpdated);
 	}
+	
+	if (APawn* pPawn = Cast<APawn>(GetOwner()))
+	{
+		if (AAIController* pAIController = Cast<AAIController>(pPawn->GetController()))
+		{
+			m_pBlackBoard = pAIController->GetBlackboardComponent();
+		}
+	}
+	
+	if (m_pBlackBoard != nullptr)
+	{
+		m_pBlackBoard->SetValueAsBool("SawSomething", false);
+	}
+	
 }
 
 void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("Saw Something!")));
+	if (m_pBlackBoard != nullptr)
+	{
+		m_pBlackBoard->SetValueAsBool("SawSomething", true);
+		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
+	FString::Printf(TEXT("Saw Something!%s"), *Actor->GetName()));
+	}
 }

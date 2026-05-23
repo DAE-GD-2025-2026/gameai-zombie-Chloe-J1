@@ -23,4 +23,7 @@ public:
 
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+	
+private:
+	UBlackboardComponent* m_pBlackBoard{};
 };
