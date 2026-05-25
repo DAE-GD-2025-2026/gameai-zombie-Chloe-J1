@@ -8,6 +8,10 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Damage.h"
 #include "Perception/AISense_Damage.h"
+#include "Items/ItemType.h"
+#include "Common/InventoryComponent.h"
+#include "Common/HealthComponent.h"
+#include "Common/StaminaComponent.h"
 #include "StudentPerceptor.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -26,4 +30,8 @@ public:
 	
 private:
 	UBlackboardComponent* m_pBlackBoard{};
+	UInventoryComponent* m_pInventory{};
+	UHealthComponent* m_pHealth{};
+	UStaminaComponent* m_pStamina{};
+	FString ItemEnumToString(const EItemType& itemType) const;
 };
