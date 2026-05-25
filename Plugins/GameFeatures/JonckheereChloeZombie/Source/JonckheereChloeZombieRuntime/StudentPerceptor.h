@@ -14,6 +14,8 @@
 #include "Common/StaminaComponent.h"
 #include "StudentPerceptor.generated.h"
 
+class ABaseItem;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class JONCKHEERECHLOEZOMBIERUNTIME_API UStudentPerceptor : public UActorComponent
 {
@@ -33,5 +35,14 @@ private:
 	UInventoryComponent* m_pInventory{};
 	UHealthComponent* m_pHealth{};
 	UStaminaComponent* m_pStamina{};
+	
+	TArray<ABaseItem*> m_ItemsInInventory{};
+	
 	FString ItemEnumToString(const EItemType& itemType) const;
+	int GetFreeSlot() const;
+	void UseItem(int SlotIdx);
+	void RemoveItem(int SlotIdx);
+	void GrabItem(ABaseItem* Item);
+	void SaveLocation(ABaseItem* Item);
+	void SpecifySeenItem(const EItemType& itemType);
 };
