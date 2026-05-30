@@ -9,6 +9,7 @@
 #include "Items/BaseItem.h"
 #include "Village/House/House.h"
 #include "Survivor/SurvivorPawn.h"
+#include "Zombies/BaseZombie.h"
 
 UStudentPerceptorJonckheereChloe::UStudentPerceptorJonckheereChloe()
 {
@@ -89,6 +90,11 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 		
 		// ZOMBIES
 		//********
+		if (ABaseZombie* Zombie = dynamic_cast<ABaseZombie*>(Actor))
+		{
+			m_pBlackBoard->SetValueAsBool("SawZombie", true);
+			Attack();
+		}
 	}
 }
 
@@ -128,7 +134,8 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
 	
-	if (m_pInventory->GrabItem(GetFreeSlot(), Item))
+	int FreeIdx{GetFreeSlot()};
+	if (m_pInventory->GrabItem(FreeIdx, Item))
 	{
 		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
 	FString::Printf(TEXT("GRAB %s"), *Item->GetName()));
@@ -219,4 +226,20 @@ bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
 	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Blue, 
 	FString::Printf(TEXT("cannot enter")));
 	return false;
+}
+
+void UStudentPerceptorJonckheereChloe::Attack()
+{
+	m_ItemsInInventory = m_pInventory->GetInventory();
+	// Look for a weapon to use - later we can base the chosen weapon on our health or smth
+	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
+	{
+		if (m_ItemsInInventory[index] == nullptr) continue;
+		if (m_ItemsInInventory[index]->GetItemType() == EItemType::Shotgun || m_ItemsInInventory[index]->GetItemType() == EItemType::Pistol)
+		{
+			m_pInventory->UseItem(index);
+			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
+	FString::Printf(TEXT("SHOOT")));
+		}
+	}
 }

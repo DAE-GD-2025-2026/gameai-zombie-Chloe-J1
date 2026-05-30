@@ -53,4 +53,6 @@ private:
 	bool CanVisitHouse(AHouse* House);
 	std::vector<AHouse*> m_VisitedHouses{};
 	
+	// ZOMBIE
+	void Attack();
 };
