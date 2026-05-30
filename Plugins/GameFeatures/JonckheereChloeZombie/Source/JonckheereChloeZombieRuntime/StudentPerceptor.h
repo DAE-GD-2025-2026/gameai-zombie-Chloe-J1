@@ -12,9 +12,17 @@
 #include "Common/InventoryComponent.h"
 #include "Common/HealthComponent.h"
 #include "Common/StaminaComponent.h"
+#include <vector>
 #include "StudentPerceptor.generated.h"
 
 class ABaseItem;
+class AHouse;
+
+struct HouseInfo
+{
+	float VisitedTimestamp{};
+	AHouse* House{};
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class JONCKHEERECHLOEZOMBIERUNTIME_API UStudentPerceptor : public UActorComponent
@@ -35,7 +43,7 @@ private:
 	UInventoryComponent* m_pInventory{};
 	UHealthComponent* m_pHealth{};
 	UStaminaComponent* m_pStamina{};
-	
+	// ITEMS
 	TArray<ABaseItem*> m_ItemsInInventory{};
 	
 	FString ItemEnumToString(const EItemType& itemType) const;
@@ -45,4 +53,13 @@ private:
 	void GrabItem(ABaseItem* Item);
 	void SaveLocation(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& itemType);
+	
+	// HOUSE
+	std::vector<FVector> m_HouseCorners{};
+	int m_CornerIdx{0};
+	
+	void EnterHouse(AHouse* House);
+	bool CanVisitHouse(AHouse* House);
+	std::vector<HouseInfo> m_VisitedHouses{};
+	
 };

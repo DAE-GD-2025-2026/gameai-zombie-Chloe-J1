@@ -7,6 +7,7 @@
 #include "AIController.h"
 #include "IDetailTreeNode.h"
 #include "Items/BaseItem.h"
+#include "Village/House/House.h"
 #include "Survivor/SurvivorPawn.h"
 
 UStudentPerceptor::UStudentPerceptor()
@@ -48,32 +49,45 @@ void UStudentPerceptor::BeginPlay()
 void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (m_pBlackBoard == nullptr) return;
+	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Blue, 
+	FString::Printf(TEXT("Item: %s"), *Actor->GetName()));
 	if (Stimulus.WasSuccessfullySensed())
 	{
+		// HOUSE
+		//*******
+		if (AHouse* House = dynamic_cast<AHouse*>(Actor))
+		{
+			GEngine->AddOnScreenDebugMessage(5, 5.f, FColor::Blue, 
+	FString::Printf(TEXT("SAW HOUSE")));
+			if (CanVisitHouse(House))
+			{
+				EnterHouse(House);
+			}
+		}
 		// ITEMS
 		//*******
-		if (ABaseItem* Item = dynamic_cast<ABaseItem*>(Actor))
-		{
-			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("Item: %s"), *ItemEnumToString(Item->GetItemType())));
-			if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
-			
-			// Grab if not in inv
-			
-			if (not m_ItemsInInventory.Contains(Item))
-			{
-				m_pInventory->GrabItem(GetFreeSlot(), Item);
-			}
-			// Save location
-			else
-			{
-				SaveLocation(Item);
-			}
-			
-			SpecifySeenItem(Item->GetItemType());
-			m_pBlackBoard->SetValueAsBool("SawItem", true);
-			m_pBlackBoard->SetValueAsVector("ItemLocation", Item->GetActorLocation());
-		}
+	// 	if (ABaseItem* Item = dynamic_cast<ABaseItem*>(Actor))
+	// 	{
+	// 		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	// FString::Printf(TEXT("Item: %s"), *ItemEnumToString(Item->GetItemType())));
+	// 		if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
+	// 		
+	// 		// Grab if not in inv
+	// 		
+	// 		if (not m_ItemsInInventory.Contains(Item))
+	// 		{
+	// 			GrabItem(Item);
+	// 		}
+	// 		// Save location
+	// 		else
+	// 		{
+	// 			SaveLocation(Item);
+	// 		}
+	// 		
+	// 		SpecifySeenItem(Item->GetItemType());
+	// 		m_pBlackBoard->SetValueAsBool("SawItem", true);
+	// 		m_pBlackBoard->SetValueAsVector("ItemLocation", Item->GetActorLocation());
+	// 	}
 		
 		// ZOMBIES
 		//********
@@ -167,4 +181,45 @@ void UStudentPerceptor::SpecifySeenItem(const EItemType& itemType)
 		m_pBlackBoard->SetValueAsBool("SawPistol", true);
 		break;
 	}
+}
+
+void UStudentPerceptor::EnterHouse(AHouse* House)
+{
+	m_pBlackBoard->SetValueAsBool("SawHouse", true);
+	m_pBlackBoard->SetValueAsObject("LastVisitedHouse", House);
+	m_pBlackBoard->SetValueAsVector("HouseLocation", House->GetBounds().Origin);
+}
+
+bool UStudentPerceptor::CanVisitHouse(AHouse* House)
+{
+	GEngine->AddOnScreenDebugMessage(5, 5.f, FColor::Blue, 
+	FString::Printf(TEXT("CALC CAN VISIT")));
+	if (House == m_pBlackBoard->GetValueAsObject("LastVisitedHouse"))
+	{
+		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	FString::Printf(TEXT("JSUT VISITED")));
+		return false;
+	}
+	
+	const float RevisitTime{50.f};
+	auto itr = std::find_if(m_VisitedHouses.begin(), m_VisitedHouses.end(), [&House](const HouseInfo& info)
+	{
+		return info.House == House;
+	});
+	if (itr == m_VisitedHouses.end())
+	{
+		HouseInfo HouseInfo{};
+		HouseInfo.House = House;
+		HouseInfo.VisitedTimestamp = GetWorld()->GetTimeSeconds();
+		m_VisitedHouses.push_back(HouseInfo);
+		return true;
+	}
+	if (GetWorld()->GetTimeSeconds() - itr->VisitedTimestamp <= RevisitTime)
+	{
+		itr->VisitedTimestamp = GetWorld()->GetTimeSeconds();
+		return true;	
+	}
+	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	FString::Printf(TEXT("cannot enter")));
+	return false;
 }
