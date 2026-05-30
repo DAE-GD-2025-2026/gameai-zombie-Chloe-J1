@@ -13,7 +13,7 @@
 #include "Common/HealthComponent.h"
 #include "Common/StaminaComponent.h"
 #include <vector>
-#include "StudentPerceptor.generated.h"
+#include "StudentPerceptorJonckheereChloe.generated.h"
 
 class ABaseItem;
 class AHouse;
@@ -25,13 +25,13 @@ struct HouseInfo
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class JONCKHEERECHLOEZOMBIERUNTIME_API UStudentPerceptor : public UActorComponent
+class JONCKHEERECHLOEZOMBIERUNTIME_API UStudentPerceptorJonckheereChloe : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this component's properties
-	UStudentPerceptor();
+	UStudentPerceptorJonckheereChloe();
 	
 	virtual void BeginPlay() override;
 

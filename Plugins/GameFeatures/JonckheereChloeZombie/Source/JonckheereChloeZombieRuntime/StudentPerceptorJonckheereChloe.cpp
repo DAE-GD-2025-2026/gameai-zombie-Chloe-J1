@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "StudentPerceptor.h"
+#include "StudentPerceptorJonckheereChloe.h"
 
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
@@ -10,13 +10,13 @@
 #include "Village/House/House.h"
 #include "Survivor/SurvivorPawn.h"
 
-UStudentPerceptor::UStudentPerceptor()
+UStudentPerceptorJonckheereChloe::UStudentPerceptorJonckheereChloe()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	m_ItemsInInventory.SetNum(5);
 }
 
-void UStudentPerceptor::BeginPlay()
+void UStudentPerceptorJonckheereChloe::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -29,7 +29,7 @@ void UStudentPerceptor::BeginPlay()
 	
 	if (auto PerceptionComp = GetOwner()->GetComponentByClass<UAIPerceptionComponent>())
 	{
-		PerceptionComp->OnTargetPerceptionUpdated.AddDynamic(this, &UStudentPerceptor::OnPerceptionUpdated);
+		PerceptionComp->OnTargetPerceptionUpdated.AddDynamic(this, &UStudentPerceptorJonckheereChloe::OnPerceptionUpdated);
 	}
 	
 	if (APawn* pPawn = Cast<APawn>(GetOwner()))
@@ -46,7 +46,7 @@ void UStudentPerceptor::BeginPlay()
 	}
 }
 
-void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (m_pBlackBoard == nullptr) return;
 	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Blue, 
@@ -96,7 +96,7 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 	
 }
 
-FString UStudentPerceptor::ItemEnumToString(const EItemType& itemType) const
+FString UStudentPerceptorJonckheereChloe::ItemEnumToString(const EItemType& itemType) const
 {
 	switch (itemType)
 	{
@@ -114,7 +114,7 @@ FString UStudentPerceptor::ItemEnumToString(const EItemType& itemType) const
 	return "Unknown";
 }
 
-int UStudentPerceptor::GetFreeSlot() const
+int UStudentPerceptorJonckheereChloe::GetFreeSlot() const
 {
 	for (int index = 0; index < m_ItemsInInventory.Num(); ++index)
 	{
@@ -126,12 +126,12 @@ int UStudentPerceptor::GetFreeSlot() const
 	return -1; // inv full
 }
 
-void UStudentPerceptor::UseItem(int SlotIdx)
+void UStudentPerceptorJonckheereChloe::UseItem(int SlotIdx)
 {
 	m_pInventory->UseItem(SlotIdx);
 }
 
-void UStudentPerceptor::RemoveItem(int SlotIdx)
+void UStudentPerceptorJonckheereChloe::RemoveItem(int SlotIdx)
 {
 	if (m_pInventory->RemoveItem(SlotIdx))
 	{
@@ -139,7 +139,7 @@ void UStudentPerceptor::RemoveItem(int SlotIdx)
 	}
 }
 
-void UStudentPerceptor::GrabItem(ABaseItem* Item)
+void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 {
 	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
 	FString::Printf(TEXT("Item: %d"), GetFreeSlot()));
@@ -151,7 +151,7 @@ void UStudentPerceptor::GrabItem(ABaseItem* Item)
 	}
 }
 
-void UStudentPerceptor::SaveLocation(ABaseItem* Item)
+void UStudentPerceptorJonckheereChloe::SaveLocation(ABaseItem* Item)
 {
 	switch (Item->GetItemType())
 	{
@@ -164,7 +164,7 @@ void UStudentPerceptor::SaveLocation(ABaseItem* Item)
 	}
 }
 
-void UStudentPerceptor::SpecifySeenItem(const EItemType& itemType)
+void UStudentPerceptorJonckheereChloe::SpecifySeenItem(const EItemType& itemType)
 {
 	switch (itemType)
 	{
@@ -183,14 +183,14 @@ void UStudentPerceptor::SpecifySeenItem(const EItemType& itemType)
 	}
 }
 
-void UStudentPerceptor::EnterHouse(AHouse* House)
+void UStudentPerceptorJonckheereChloe::EnterHouse(AHouse* House)
 {
 	m_pBlackBoard->SetValueAsBool("SawHouse", true);
 	m_pBlackBoard->SetValueAsObject("LastVisitedHouse", House);
 	m_pBlackBoard->SetValueAsVector("HouseLocation", House->GetBounds().Origin);
 }
 
-bool UStudentPerceptor::CanVisitHouse(AHouse* House)
+bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
 {
 	GEngine->AddOnScreenDebugMessage(5, 5.f, FColor::Blue, 
 	FString::Printf(TEXT("CALC CAN VISIT")));
