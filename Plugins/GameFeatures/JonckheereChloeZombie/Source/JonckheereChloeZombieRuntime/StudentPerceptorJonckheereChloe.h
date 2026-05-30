@@ -18,12 +18,6 @@
 class ABaseItem;
 class AHouse;
 
-struct HouseInfo
-{
-	float VisitedTimestamp{};
-	AHouse* House{};
-};
-
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class JONCKHEERECHLOEZOMBIERUNTIME_API UStudentPerceptorJonckheereChloe : public UActorComponent
 {
@@ -55,11 +49,8 @@ private:
 	void SpecifySeenItem(const EItemType& itemType);
 	
 	// HOUSE
-	std::vector<FVector> m_HouseCorners{};
-	int m_CornerIdx{0};
-	
 	void EnterHouse(AHouse* House);
 	bool CanVisitHouse(AHouse* House);
-	std::vector<HouseInfo> m_VisitedHouses{};
+	std::vector<AHouse*> m_VisitedHouses{};
 	
 };

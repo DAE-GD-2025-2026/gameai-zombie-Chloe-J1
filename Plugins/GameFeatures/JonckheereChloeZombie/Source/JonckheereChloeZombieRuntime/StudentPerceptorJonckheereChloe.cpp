@@ -192,32 +192,11 @@ void UStudentPerceptorJonckheereChloe::EnterHouse(AHouse* House)
 
 bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
 {
-	GEngine->AddOnScreenDebugMessage(5, 5.f, FColor::Blue, 
-	FString::Printf(TEXT("CALC CAN VISIT")));
-	if (House == m_pBlackBoard->GetValueAsObject("LastVisitedHouse"))
-	{
-		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("JSUT VISITED")));
-		return false;
-	}
-	
-	const float RevisitTime{50.f};
-	auto itr = std::find_if(m_VisitedHouses.begin(), m_VisitedHouses.end(), [&House](const HouseInfo& info)
-	{
-		return info.House == House;
-	});
+	auto itr = std::ranges::find(m_VisitedHouses, House);
 	if (itr == m_VisitedHouses.end())
 	{
-		HouseInfo HouseInfo{};
-		HouseInfo.House = House;
-		HouseInfo.VisitedTimestamp = GetWorld()->GetTimeSeconds();
-		m_VisitedHouses.push_back(HouseInfo);
+		m_VisitedHouses.push_back(House);
 		return true;
-	}
-	if (GetWorld()->GetTimeSeconds() - itr->VisitedTimestamp <= RevisitTime)
-	{
-		itr->VisitedTimestamp = GetWorld()->GetTimeSeconds();
-		return true;	
 	}
 	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
 	FString::Printf(TEXT("cannot enter")));
