@@ -49,8 +49,6 @@ void UStudentPerceptorJonckheereChloe::BeginPlay()
 void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (m_pBlackBoard == nullptr) return;
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Blue, 
-	FString::Printf(TEXT("Item: %s"), *Actor->GetName()));
 	if (Stimulus.WasSuccessfullySensed())
 	{
 		// HOUSE
@@ -66,34 +64,32 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 		}
 		// ITEMS
 		//*******
-	// 	if (ABaseItem* Item = dynamic_cast<ABaseItem*>(Actor))
-	// 	{
-	// 		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	// FString::Printf(TEXT("Item: %s"), *ItemEnumToString(Item->GetItemType())));
-	// 		if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
-	// 		
-	// 		// Grab if not in inv
-	// 		
-	// 		if (not m_ItemsInInventory.Contains(Item))
-	// 		{
-	// 			GrabItem(Item);
-	// 		}
-	// 		// Save location
-	// 		else
-	// 		{
-	// 			SaveLocation(Item);
-	// 		}
-	// 		
-	// 		SpecifySeenItem(Item->GetItemType());
-	// 		m_pBlackBoard->SetValueAsBool("SawItem", true);
-	// 		m_pBlackBoard->SetValueAsVector("ItemLocation", Item->GetActorLocation());
-	// 	}
+		if (ABaseItem* Item = dynamic_cast<ABaseItem*>(Actor))
+		{
+			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	FString::Printf(TEXT("Item: %s"), *ItemEnumToString(Item->GetItemType())));
+			if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
+			
+			// Grab if not in inv
+			
+			if (not HasItem(Item))
+			{
+				GrabItem(Item);
+			}
+			// Save location
+			else
+			{
+				SaveLocation(Item);
+			}
+			
+			SpecifySeenItem(Item->GetItemType());
+			m_pBlackBoard->SetValueAsBool("SawItem", true);
+			m_pBlackBoard->SetValueAsVector("ItemLocation", Item->GetActorLocation());
+		}
 		
 		// ZOMBIES
 		//********
 	}
-	
-	
 }
 
 FString UStudentPerceptorJonckheereChloe::ItemEnumToString(const EItemType& itemType) const
@@ -120,35 +116,37 @@ int UStudentPerceptorJonckheereChloe::GetFreeSlot() const
 	{
 		if (m_ItemsInInventory[index] == nullptr)
 		{
+			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	FString::Printf(TEXT("Free slot: %i"), index));
 			return index;
 		}
 	}
-	return -1; // inv full
-}
-
-void UStudentPerceptorJonckheereChloe::UseItem(int SlotIdx)
-{
-	m_pInventory->UseItem(SlotIdx);
-}
-
-void UStudentPerceptorJonckheereChloe::RemoveItem(int SlotIdx)
-{
-	if (m_pInventory->RemoveItem(SlotIdx))
-	{
-		m_ItemsInInventory.RemoveAt(SlotIdx);
-	}
+	return m_ItemsInInventory.Num(); // inv full
 }
 
 void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 {
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("Item: %d"), GetFreeSlot()));
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("GRAB ITEM")));
+	m_ItemsInInventory = m_pInventory->GetInventory();
+	
 	if (m_pInventory->GrabItem(GetFreeSlot(), Item))
 	{
-		m_ItemsInInventory.Add(Item);
+		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	FString::Printf(TEXT("GRAB %s"), *Item->GetName()));
+		PrintInventory();
 	}
+}
+
+bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item) const
+{
+	for (const auto& ItemInv : m_ItemsInInventory)
+	{
+		if (ItemInv == nullptr) continue;
+		if (Item->GetItemType() == ItemInv->GetItemType())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void UStudentPerceptorJonckheereChloe::SaveLocation(ABaseItem* Item)
@@ -164,9 +162,9 @@ void UStudentPerceptorJonckheereChloe::SaveLocation(ABaseItem* Item)
 	}
 }
 
-void UStudentPerceptorJonckheereChloe::SpecifySeenItem(const EItemType& itemType)
+void UStudentPerceptorJonckheereChloe::SpecifySeenItem(const EItemType& ItemType)
 {
-	switch (itemType)
+	switch (ItemType)
 	{
 	case EItemType::Food:
 		m_pBlackBoard->SetValueAsBool("SawFood", true);
@@ -180,6 +178,26 @@ void UStudentPerceptorJonckheereChloe::SpecifySeenItem(const EItemType& itemType
 	case EItemType::Pistol:
 		m_pBlackBoard->SetValueAsBool("SawPistol", true);
 		break;
+	}
+}
+
+void UStudentPerceptorJonckheereChloe::PrintInventory()
+{
+	for (const auto& item : m_ItemsInInventory)
+	{
+		FString Text = TEXT("Inventory:\n");
+		for (int i = 0; i < m_ItemsInInventory.Num(); ++i)
+		{
+			if (m_ItemsInInventory[i] == nullptr)
+			{
+				Text += FString::Printf(TEXT("Slot %d: Empty\n"), i);
+			}
+			else
+			{
+				Text += FString::Printf(TEXT("Slot %d: %s\n"), i, *ItemEnumToString(m_ItemsInInventory[i]->GetItemType()));
+			}
+		}
+		GEngine->AddOnScreenDebugMessage(10, 10000.f, FColor::Yellow, Text);
 	}
 }
 
@@ -198,7 +216,7 @@ bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
 		m_VisitedHouses.push_back(House);
 		return true;
 	}
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
+	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Blue, 
 	FString::Printf(TEXT("cannot enter")));
 	return false;
 }

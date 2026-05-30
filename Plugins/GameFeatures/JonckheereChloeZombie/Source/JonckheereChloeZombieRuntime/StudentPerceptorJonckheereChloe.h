@@ -42,11 +42,11 @@ private:
 	
 	FString ItemEnumToString(const EItemType& itemType) const;
 	int GetFreeSlot() const;
-	void UseItem(int SlotIdx);
-	void RemoveItem(int SlotIdx);
 	void GrabItem(ABaseItem* Item);
+	bool HasItem(ABaseItem* Item) const;
 	void SaveLocation(ABaseItem* Item);
-	void SpecifySeenItem(const EItemType& itemType);
+	void SpecifySeenItem(const EItemType& ItemType);
+	void PrintInventory();
 	
 	// HOUSE
 	void EnterHouse(AHouse* House);
