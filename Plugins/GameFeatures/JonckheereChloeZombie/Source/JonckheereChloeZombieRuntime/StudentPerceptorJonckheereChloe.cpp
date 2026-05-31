@@ -47,6 +47,35 @@ void UStudentPerceptorJonckheereChloe::BeginPlay()
 	}
 }
 
+void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	if (m_pBlackBoard->GetValueAsBool("SawZombie"))
+	{
+		// Walk backwards whilst trying to shoot a zombie
+		UObject* Object{m_pBlackBoard->GetValueAsObject("Zombie")};
+		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
+		{
+			FVector ZombieLocation{Zombie->GetActorLocation()};
+			Face(ZombieLocation, DeltaTime);
+			const float Radius{100.f};
+			if (FVector::Dist(GetOwner()->GetActorLocation(), ZombieLocation) <= Radius)
+			{
+				FVector Dir = Flee(ZombieLocation);
+				Cast<APawn>(GetOwner())->AddMovementInput(Dir);
+
+				Attack();
+			}
+		}
+		if (Object == nullptr)
+		{
+			m_pBlackBoard->SetValueAsBool("SawZombie", false);
+		}
+	}
+}
+
 void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (m_pBlackBoard == nullptr) return;
@@ -93,7 +122,9 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 		if (ABaseZombie* Zombie = dynamic_cast<ABaseZombie*>(Actor))
 		{
 			m_pBlackBoard->SetValueAsBool("SawZombie", true);
-			Attack();
+			m_pBlackBoard->SetValueAsObject("Zombie", Zombie);
+			FVector Dir = Flee(m_pBlackBoard->GetValueAsVector("ZombieLocation"));
+			Cast<APawn>(GetOwner())->AddMovementInput(Dir);
 		}
 	}
 }
@@ -139,7 +170,6 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 	{
 		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
 	FString::Printf(TEXT("GRAB %s"), *Item->GetName()));
-		PrintInventory();
 	}
 }
 
@@ -188,26 +218,6 @@ void UStudentPerceptorJonckheereChloe::SpecifySeenItem(const EItemType& ItemType
 	}
 }
 
-void UStudentPerceptorJonckheereChloe::PrintInventory()
-{
-	for (const auto& item : m_ItemsInInventory)
-	{
-		FString Text = TEXT("Inventory:\n");
-		for (int i = 0; i < m_ItemsInInventory.Num(); ++i)
-		{
-			if (m_ItemsInInventory[i] == nullptr)
-			{
-				Text += FString::Printf(TEXT("Slot %d: Empty\n"), i);
-			}
-			else
-			{
-				Text += FString::Printf(TEXT("Slot %d: %s\n"), i, *ItemEnumToString(m_ItemsInInventory[i]->GetItemType()));
-			}
-		}
-		GEngine->AddOnScreenDebugMessage(10, 10000.f, FColor::Yellow, Text);
-	}
-}
-
 void UStudentPerceptorJonckheereChloe::EnterHouse(AHouse* House)
 {
 	m_pBlackBoard->SetValueAsBool("SawHouse", true);
@@ -242,4 +252,66 @@ void UStudentPerceptorJonckheereChloe::Attack()
 	FString::Printf(TEXT("SHOOT")));
 		}
 	}
+}
+
+FVector UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
+{
+	FVector Dir{FVector(GetOwner()->GetActorLocation() - TargetLocation).GetSafeNormal()};
+	Dir.Z = 0;
+	return Dir;
+}
+
+FVector UStudentPerceptorJonckheereChloe::Flee(const FVector& TargetLocation)
+{
+	return Seek(TargetLocation) *= -1;
+}
+
+void UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float DeltaT)
+{
+	constexpr float Threshold{0.1f};
+	const float RotSpeed{80.f};
+	double AngularVelocity{0.f};
+
+
+
+	FVector2D AgentForward(GetOwner()->GetActorForwardVector().X, GetOwner()->GetActorForwardVector().Y);
+
+	// calc delta angle
+	FVector2D Destination = FVector2D{TargetLocation - GetOwner()->GetActorLocation()};
+
+	double TargetAngle = FMath::Atan2(Destination.Y, Destination.X);
+	double ForwardAngle = FMath::Atan2(AgentForward.Y, AgentForward.X);
+
+	double DeltaAngle = TargetAngle - ForwardAngle;
+
+
+
+	if (abs(DeltaAngle) >= Threshold)
+	{
+		AngularVelocity =  DeltaAngle * DeltaT * RotSpeed;
+	}
+	else
+	{
+		AngularVelocity = 0.f;
+	}
+	
+	const float MaxAngularSpeed{200.f};
+	float const DeltaYaw = FMath::Clamp(AngularVelocity, -1.0f, 1.0f) * MaxAngularSpeed * DeltaT;
+				
+	FRotator const CurrentRotation{GetOwner()->GetActorForwardVector().ToOrientationRotator()};
+	FRotator const DeltaRotation{0, DeltaYaw, 0};
+	FRotator const DesiredRotation{CurrentRotation + DeltaRotation};
+				
+	// We only ever care about yaw
+	if (!FMath::IsNearlyEqual(CurrentRotation.Yaw, DesiredRotation.Yaw))
+	{
+		GetOwner()->SetActorRotation(DesiredRotation);
+	}
+}
+
+void UStudentPerceptorJonckheereChloe::LookAt(const FVector& TargetLocation)
+{
+	FVector Direction = (TargetLocation - GetOwner()->GetActorLocation()).GetSafeNormal();
+	FRotator LookRotation = Direction.ToOrientationRotator();
+	GetOwner()->SetActorRotation(FRotator(0, LookRotation.Yaw+ 180.f, 0));
 }

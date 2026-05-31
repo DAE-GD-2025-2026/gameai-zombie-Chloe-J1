@@ -28,6 +28,7 @@ public:
 	UStudentPerceptorJonckheereChloe();
 	
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
@@ -46,7 +47,6 @@ private:
 	bool HasItem(ABaseItem* Item) const;
 	void SaveLocation(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
-	void PrintInventory();
 	
 	// HOUSE
 	void EnterHouse(AHouse* House);
@@ -55,4 +55,10 @@ private:
 	
 	// ZOMBIE
 	void Attack();
+	
+	// STEERING
+	FVector Seek(const FVector& TargetLocation);
+	FVector Flee(const FVector& TargetLocation);
+	void Face(const FVector& TargetLocation, float DeltaT);
+	void LookAt(const FVector& TargetLocation);
 };
