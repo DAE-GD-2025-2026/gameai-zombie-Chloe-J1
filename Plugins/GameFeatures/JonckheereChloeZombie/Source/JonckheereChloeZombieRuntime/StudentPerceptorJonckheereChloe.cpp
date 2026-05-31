@@ -118,6 +118,10 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 			{
 				GrabItem(Item);
 			}
+			else if (IsMoreValuable(Item))
+			{
+				GrabItem(Item);
+			}
 			else
 			{
 				SaveLocation(Item);
@@ -370,6 +374,24 @@ bool UStudentPerceptorJonckheereChloe::UseItem(const EItemType& ItemType)
 			{
 				m_pInventory->RemoveItem(index);
 			}
+			return true;
+		}
+	}
+	return false;
+}
+
+bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
+{
+	m_ItemsInInventory = m_pInventory->GetInventory();
+	// Look if we have the correct item
+	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
+	{
+		if (m_ItemsInInventory[index] == nullptr) continue;
+		if (m_ItemsInInventory[index]->GetItemType() == Item->GetItemType())
+		{
+			m_pInventory->RemoveItem(index); // Drop so we can pickup the more valuable version
+			GEngine->AddOnScreenDebugMessage(6, 3.f, FColor::Green, 
+	FString::Printf(TEXT("Dropped %s bc saw a more valuable one"), *ItemEnumToString(Item->GetItemType())));
 			return true;
 		}
 	}

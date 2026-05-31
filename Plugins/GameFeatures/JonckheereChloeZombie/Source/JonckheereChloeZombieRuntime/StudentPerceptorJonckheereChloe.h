@@ -50,6 +50,7 @@ private:
 	void SaveLocation(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
 	bool UseItem(const EItemType& ItemType);
+	bool IsMoreValuable(ABaseItem* Item);
 	
 	// HOUSE
 	void EnterHouse(AHouse* House);
