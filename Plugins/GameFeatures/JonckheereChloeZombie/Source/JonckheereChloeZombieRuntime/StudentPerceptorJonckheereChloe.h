@@ -59,6 +59,5 @@ private:
 	// STEERING
 	FVector Seek(const FVector& TargetLocation);
 	FVector Flee(const FVector& TargetLocation);
-	void Face(const FVector& TargetLocation, float DeltaT);
-	void LookAt(const FVector& TargetLocation);
+	bool Face(const FVector& TargetLocation, float DeltaT);
 };

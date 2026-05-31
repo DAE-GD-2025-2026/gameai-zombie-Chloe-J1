@@ -5,7 +5,6 @@
 
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
-#include "IDetailTreeNode.h"
 #include "Items/BaseItem.h"
 #include "Village/House/House.h"
 #include "DrawDebugHelpers.h"
@@ -60,9 +59,11 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
 		{
 			FVector ZombieLocation{Zombie->GetActorLocation()};
-			Face(ZombieLocation, DeltaTime);
+			if (Face(ZombieLocation, DeltaTime)) // Only shoot if facing the zombie
+			{
+				Attack();
+			}
 			const float Radius{100.f};
-			Attack();
 			if (FVector::Dist(GetOwner()->GetActorLocation(), ZombieLocation) <= Radius)
 			{
 				FVector Dir = Flee(ZombieLocation);
@@ -247,6 +248,12 @@ void UStudentPerceptorJonckheereChloe::Attack()
 		if (m_ItemsInInventory[index] == nullptr) continue;
 		if (m_ItemsInInventory[index]->GetItemType() == EItemType::Shotgun || m_ItemsInInventory[index]->GetItemType() == EItemType::Pistol)
 		{
+			if (m_ItemsInInventory[index]->GetValue() == 0) // Drop gun if it has no bullets left
+			{
+				m_pInventory->RemoveItem(index);
+				return;
+			}
+			
 			m_pInventory->UseItem(index);
 			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
 	FString::Printf(TEXT("SHOOT")));
@@ -270,7 +277,7 @@ FVector UStudentPerceptorJonckheereChloe::Flee(const FVector& TargetLocation)
 	return Seek(TargetLocation) *= -1;
 }
 
-void UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float DeltaT)
+bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float DeltaT)
 {
 	constexpr float Threshold{0.1f};
 	const float RotSpeed{80.f};
@@ -297,6 +304,7 @@ void UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	else
 	{
 		AngularVelocity = 0.f;
+		return true;
 	}
 	
 	const float MaxAngularSpeed{200.f};
@@ -311,11 +319,5 @@ void UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	{
 		GetOwner()->SetActorRotation(DesiredRotation);
 	}
-}
-
-void UStudentPerceptorJonckheereChloe::LookAt(const FVector& TargetLocation)
-{
-	FVector Direction = (TargetLocation - GetOwner()->GetActorLocation()).GetSafeNormal();
-	FRotator LookRotation = Direction.ToOrientationRotator();
-	GetOwner()->SetActorRotation(FRotator(0, LookRotation.Yaw+ 180.f, 0));
+	return false;
 }
