@@ -8,6 +8,7 @@
 #include "IDetailTreeNode.h"
 #include "Items/BaseItem.h"
 #include "Village/House/House.h"
+#include "DrawDebugHelpers.h"
 #include "Survivor/SurvivorPawn.h"
 #include "Zombies/BaseZombie.h"
 
@@ -61,12 +62,11 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 			FVector ZombieLocation{Zombie->GetActorLocation()};
 			Face(ZombieLocation, DeltaTime);
 			const float Radius{100.f};
+			Attack();
 			if (FVector::Dist(GetOwner()->GetActorLocation(), ZombieLocation) <= Radius)
 			{
 				FVector Dir = Flee(ZombieLocation);
 				Cast<APawn>(GetOwner())->AddMovementInput(Dir);
-
-				Attack();
 			}
 		}
 		if (Object == nullptr)
@@ -250,13 +250,17 @@ void UStudentPerceptorJonckheereChloe::Attack()
 			m_pInventory->UseItem(index);
 			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
 	FString::Printf(TEXT("SHOOT")));
+			FVector Start = GetOwner()->GetActorLocation();
+			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
+
+			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
 		}
 	}
 }
 
 FVector UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
 {
-	FVector Dir{FVector(GetOwner()->GetActorLocation() - TargetLocation).GetSafeNormal()};
+	FVector Dir{FVector(TargetLocation).GetSafeNormal() - GetOwner()->GetActorLocation()};
 	Dir.Z = 0;
 	return Dir;
 }
