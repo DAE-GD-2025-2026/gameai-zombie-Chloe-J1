@@ -38,15 +38,18 @@ private:
 	UInventoryComponent* m_pInventory{};
 	UHealthComponent* m_pHealth{};
 	UStaminaComponent* m_pStamina{};
+	int m_MaxHealth{};
+	int m_MaxStamina{};
 	// ITEMS
 	TArray<ABaseItem*> m_ItemsInInventory{};
 	
 	FString ItemEnumToString(const EItemType& itemType) const;
 	int GetFreeSlot() const;
 	void GrabItem(ABaseItem* Item);
-	bool HasItem(ABaseItem* Item) const;
+	bool HasItem(ABaseItem* Item);
 	void SaveLocation(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
+	bool UseItem(const EItemType& ItemType);
 	
 	// HOUSE
 	void EnterHouse(AHouse* House);
@@ -60,4 +63,8 @@ private:
 	FVector Seek(const FVector& TargetLocation);
 	FVector Flee(const FVector& TargetLocation);
 	bool Face(const FVector& TargetLocation, float DeltaT);
+	
+	// STATS
+	void ManageHealth();
+	void ManageStamina();
 };

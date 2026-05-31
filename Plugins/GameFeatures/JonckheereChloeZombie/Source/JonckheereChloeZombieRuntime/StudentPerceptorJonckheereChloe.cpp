@@ -28,6 +28,9 @@ void UStudentPerceptorJonckheereChloe::BeginPlay()
 	m_pStamina = GetOwner()->GetComponentByClass<UStaminaComponent>();
 	if (m_pStamina == nullptr) UE_LOG(LogTemp, Warning, TEXT("No stamina found!"));
 	
+	m_MaxHealth = m_pHealth->GetMaxHealth();
+	m_MaxStamina = m_pStamina->GetMaxStamina();
+	
 	if (auto PerceptionComp = GetOwner()->GetComponentByClass<UAIPerceptionComponent>())
 	{
 		PerceptionComp->OnTargetPerceptionUpdated.AddDynamic(this, &UStudentPerceptorJonckheereChloe::OnPerceptionUpdated);
@@ -53,9 +56,9 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
+	// ZOMBIE SPOTTED
 	if (m_pBlackBoard->GetValueAsBool("SawZombie"))
 	{
-		// Walk backwards whilst trying to shoot a zombie
 		UObject* Object{m_pBlackBoard->GetValueAsObject("Zombie")};
 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
 		{
@@ -65,10 +68,14 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 				Attack();
 			}
 			const float Radius{300.f};
+			// Walk backwards whilst trying to shoot a zombie
 			if (FVector::Dist(GetOwner()->GetActorLocation(), ZombieLocation) <= Radius)
 			{
 				FVector Dir = Flee(ZombieLocation);
-				Cast<APawn>(GetOwner())->AddMovementInput(Dir);
+				if (m_pStamina->GetCurrentStamina() > 0) // only move when stamina left
+				{
+					Cast<APawn>(GetOwner())->AddMovementInput(Dir);
+				}
 			}
 		}
 		if (Object == nullptr)
@@ -76,6 +83,10 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 			m_pBlackBoard->SetValueAsBool("SawZombie", false);
 		}
 	}
+	
+	// STATS
+	ManageHealth();
+	ManageStamina();
 }
 
 void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -103,12 +114,10 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 			if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
 			
 			// Grab if not in inv
-			
 			if (not HasItem(Item))
 			{
 				GrabItem(Item);
 			}
-			// Save location
 			else
 			{
 				SaveLocation(Item);
@@ -123,10 +132,13 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 		//********
 		if (ABaseZombie* Zombie = dynamic_cast<ABaseZombie*>(Actor))
 		{
-			m_pBlackBoard->SetValueAsBool("SawZombie", true);
-			m_pBlackBoard->SetValueAsObject("Zombie", Zombie);
-			FVector Dir = Flee(m_pBlackBoard->GetValueAsVector("ZombieLocation"));
-			Cast<APawn>(GetOwner())->AddMovementInput(Dir);
+			if (m_pBlackBoard->GetValueAsBool("SawZombie") == false) // Prevent overwriting the previous sawn zombie
+			{
+				m_pBlackBoard->SetValueAsBool("SawZombie", true);
+				m_pBlackBoard->SetValueAsObject("Zombie", Zombie);
+				FVector Dir = Flee(m_pBlackBoard->GetValueAsVector("ZombieLocation"));
+				Cast<APawn>(GetOwner())->AddMovementInput(Dir);
+			}
 		}
 	}
 }
@@ -175,8 +187,9 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 	}
 }
 
-bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item) const
+bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item)
 {
+	m_ItemsInInventory = m_pInventory->GetInventory();
 	for (const auto& ItemInv : m_ItemsInInventory)
 	{
 		if (ItemInv == nullptr) continue;
@@ -247,20 +260,21 @@ void UStudentPerceptorJonckheereChloe::Attack()
 	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
 	{
 		if (m_ItemsInInventory[index] == nullptr) continue;
-		if (m_ItemsInInventory[index]->GetItemType() == EItemType::Shotgun || m_ItemsInInventory[index]->GetItemType() == EItemType::Pistol)
+		
+		if (UseItem(EItemType::Shotgun))
 		{
-			if (m_ItemsInInventory[index]->GetValue() == 0) // Drop gun if it has no bullets left
-			{
-				m_pInventory->RemoveItem(index);
-				return;
-			}
-			
-			m_pInventory->UseItem(index);
 			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
 	FString::Printf(TEXT("SHOOT")));
 			FVector Start = GetOwner()->GetActorLocation();
 			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
-
+			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+		}
+		else if (UseItem(EItemType::Pistol))
+		{
+			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
+	FString::Printf(TEXT("SHOOT")));
+			FVector Start = GetOwner()->GetActorLocation();
+			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
 			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
 		}
 	}
@@ -303,7 +317,10 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	}
 	else
 	{
-		AngularVelocity = 0.f;
+		FRotator ExactRotation = (TargetLocation - GetOwner()->GetActorLocation()).ToOrientationRotator();
+		ExactRotation.Pitch = 0;
+		ExactRotation.Roll = 0;
+		GetOwner()->SetActorRotation(ExactRotation);
 		return true;
 	}
 	
@@ -318,6 +335,43 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	if (!FMath::IsNearlyEqual(CurrentRotation.Yaw, DesiredRotation.Yaw))
 	{
 		GetOwner()->SetActorRotation(DesiredRotation);
+	}
+	return false;
+}
+
+void UStudentPerceptorJonckheereChloe::ManageHealth()
+{
+	if (m_pHealth->GetHealth() <= m_MaxHealth / 2.f)
+	{
+		UseItem(EItemType::Medkit);
+	}
+}
+
+void UStudentPerceptorJonckheereChloe::ManageStamina()
+{
+	if (m_pStamina->GetCurrentStamina() <= m_MaxStamina / 2.f)
+	{
+		UseItem(EItemType::Food);
+	}
+}
+
+bool UStudentPerceptorJonckheereChloe::UseItem(const EItemType& ItemType)
+{
+	m_ItemsInInventory = m_pInventory->GetInventory();
+	// Look if we have the correct item we want to use
+	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
+	{
+		if (m_ItemsInInventory[index] == nullptr) continue;
+		if (m_ItemsInInventory[index]->GetItemType() == ItemType)
+		{
+			m_pInventory->UseItem(index);
+			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, FString::Printf(TEXT("Used item: %s"), *ItemEnumToString(ItemType)));
+			if (m_ItemsInInventory[index]->GetValue() == 0) // Drop item if it has no value left
+			{
+				m_pInventory->RemoveItem(index);
+			}
+			return true;
+		}
 	}
 	return false;
 }
