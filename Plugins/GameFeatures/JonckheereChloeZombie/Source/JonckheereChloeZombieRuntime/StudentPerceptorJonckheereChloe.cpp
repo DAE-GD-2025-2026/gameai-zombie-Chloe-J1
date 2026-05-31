@@ -49,6 +49,7 @@ void UStudentPerceptorJonckheereChloe::BeginPlay()
 
 void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick TickType,
 	FActorComponentTickFunction* ThisTickFunction)
+
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
@@ -63,7 +64,7 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 			{
 				Attack();
 			}
-			const float Radius{100.f};
+			const float Radius{300.f};
 			if (FVector::Dist(GetOwner()->GetActorLocation(), ZombieLocation) <= Radius)
 			{
 				FVector Dir = Flee(ZombieLocation);
@@ -294,8 +295,7 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	double ForwardAngle = FMath::Atan2(AgentForward.Y, AgentForward.X);
 
 	double DeltaAngle = TargetAngle - ForwardAngle;
-
-
+	DeltaAngle = FMath::UnwindRadians(DeltaAngle); // Get smallest angle
 
 	if (abs(DeltaAngle) >= Threshold)
 	{
@@ -307,7 +307,7 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 		return true;
 	}
 	
-	const float MaxAngularSpeed{200.f};
+	const float MaxAngularSpeed{400.f};
 	float const DeltaYaw = FMath::Clamp(AngularVelocity, -1.0f, 1.0f) * MaxAngularSpeed * DeltaT;
 				
 	FRotator const CurrentRotation{GetOwner()->GetActorForwardVector().ToOrientationRotator()};
