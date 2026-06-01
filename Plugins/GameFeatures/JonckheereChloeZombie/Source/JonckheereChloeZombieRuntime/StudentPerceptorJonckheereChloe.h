@@ -13,6 +13,7 @@
 #include "Common/HealthComponent.h"
 #include "Common/StaminaComponent.h"
 #include <vector>
+#include "BehaviorTree/BTTaskNode.h"
 #include "StudentPerceptorJonckheereChloe.generated.h"
 
 class ABaseItem;
@@ -33,6 +34,11 @@ public:
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 	
+	// STEERING
+	FVector Seek(const FVector& TargetLocation);
+	FVector Flee(const FVector& TargetLocation);
+	bool Face(const FVector& TargetLocation, float DeltaT);
+	void Move(const FVector& Direction);
 private:
 	UBlackboardComponent* m_pBlackBoard{};
 	UInventoryComponent* m_pInventory{};
@@ -58,14 +64,37 @@ private:
 	std::vector<AHouse*> m_VisitedHouses{};
 	
 	// ZOMBIE
-	void Attack();
-	
-	// STEERING
-	FVector Seek(const FVector& TargetLocation);
-	FVector Flee(const FVector& TargetLocation);
-	bool Face(const FVector& TargetLocation, float DeltaT);
+	void Shoot();
+	void AttackBehavior(const FVector& TargetLocation, float DeltaT);
 	
 	// STATS
 	void ManageHealth();
 	void ManageStamina();
+};
+
+// TASKS
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFleeTask final : public UBTTaskNode
+{
+	GENERATED_BODY()
+
+public:
+	UFleeTask();
+
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UAttackTask final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UAttackTask();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;	
 };

@@ -55,34 +55,28 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	
-	// ZOMBIE SPOTTED
-	if (m_pBlackBoard->GetValueAsBool("SawZombie"))
-	{
-		UObject* Object{m_pBlackBoard->GetValueAsObject("Zombie")};
-		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
-		{
-			FVector ZombieLocation{Zombie->GetActorLocation()};
-			if (Face(ZombieLocation, DeltaTime)) // Only shoot if facing the zombie
-			{
-				Attack();
-			}
-			const float Radius{300.f};
-			// Walk backwards whilst trying to shoot a zombie
-			if (FVector::Dist(GetOwner()->GetActorLocation(), ZombieLocation) <= Radius)
-			{
-				FVector Dir = Flee(ZombieLocation);
-				if (m_pStamina->GetCurrentStamina() > 0) // only move when stamina left
-				{
-					Cast<APawn>(GetOwner())->AddMovementInput(Dir);
-				}
-			}
-		}
-		if (Object == nullptr)
-		{
-			m_pBlackBoard->SetValueAsBool("SawZombie", false);
-		}
-	}
+	m_pBlackBoard->SetValueAsFloat("Health", m_pHealth->GetHealth()); // Always update health
+	//ZOMBIE SPOTTED
+// 	if (m_pBlackBoard->GetValueAsBool("SawZombie"))
+// 	{
+// 		UObject* Object{m_pBlackBoard->GetValueAsObject("Zombie")};
+// 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
+// 		{
+// 			FVector ZombieLocation{Zombie->GetActorLocation()};
+//
+// 			FVector Dir = Flee(ZombieLocation);
+// 			Move(Dir);
+// 			Face(Dir, DeltaTime);
+// 			GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Red, 
+// FString::Printf(TEXT("Flee")));
+// 		}
+// 		if (Object == nullptr)
+// 		{
+// 			m_pBlackBoard->SetValueAsBool("SawZombie", false);
+// 			m_pBlackBoard->SetValueAsBool("IsRunning", false);
+// 			m_pBlackBoard->SetValueAsBool("IsAttacking", false);
+// 		}
+// 	}
 	
 	// STATS
 	ManageHealth();
@@ -257,7 +251,7 @@ bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
 	return false;
 }
 
-void UStudentPerceptorJonckheereChloe::Attack()
+void UStudentPerceptorJonckheereChloe::Shoot()
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
 	// Look for a weapon to use - later we can base the chosen weapon on our health or smth
@@ -281,12 +275,34 @@ void UStudentPerceptorJonckheereChloe::Attack()
 			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
 			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
 		}
+		else
+		{
+			// No weapons to attack
+			m_pBlackBoard->SetValueAsBool("HasWeapon", false);
+			GEngine->AddOnScreenDebugMessage(3, 1.f, FColor::Red, 
+	FString::Printf(TEXT("No weapon")));
+		}
+	}
+}
+
+void UStudentPerceptorJonckheereChloe::AttackBehavior(const FVector& TargetLocation, float DeltaT)
+{
+	if (Face(TargetLocation, DeltaT)) // Only shoot if facing the zombie
+	{
+		Shoot();
+	}
+	const float Radius{300.f};
+	// Walk backwards whilst trying to shoot a zombie
+	if (FVector::Dist(GetOwner()->GetActorLocation(), TargetLocation) <= Radius)
+	{
+		FVector Dir = Flee(TargetLocation);
+		Move(Dir);
 	}
 }
 
 FVector UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
 {
-	FVector Dir{FVector(TargetLocation).GetSafeNormal() - GetOwner()->GetActorLocation()};
+	FVector Dir{(FVector(TargetLocation) - GetOwner()->GetActorLocation()).GetSafeNormal()};
 	Dir.Z = 0;
 	return Dir;
 }
@@ -343,6 +359,14 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	return false;
 }
 
+void UStudentPerceptorJonckheereChloe::Move(const FVector& Direction)
+{
+	if (m_pStamina->GetCurrentStamina() > 0) // only move when stamina left
+	{
+		Cast<APawn>(GetOwner())->AddMovementInput(Direction);
+	}
+}
+
 void UStudentPerceptorJonckheereChloe::ManageHealth()
 {
 	if (m_pHealth->GetHealth() <= m_MaxHealth / 2.f)
@@ -383,7 +407,7 @@ bool UStudentPerceptorJonckheereChloe::UseItem(const EItemType& ItemType)
 bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
-	// Look if we have the correct item
+
 	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
 	{
 		if (m_ItemsInInventory[index] == nullptr) continue;
@@ -396,4 +420,57 @@ bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
 		}
 	}
 	return false;
+}
+
+// TASKS
+UFleeTask::UFleeTask()
+{
+	NodeName = "Flee";
+	bNotifyTick = true;
+}
+
+EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	return EBTNodeResult::InProgress;
+}
+
+void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+
+	UObject* Object = Blackboard->GetValueAsObject("Zombie");
+	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
+	{
+		FVector ZombieLocation = Zombie->GetActorLocation();
+		FVector Dir = Perceptor->Flee(ZombieLocation);
+		Perceptor->Move(Dir);
+		FVector AwayFromTarget = Pawn->GetActorLocation() + Dir;
+		Perceptor->Face(AwayFromTarget, DeltaSeconds);
+		GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Red, FString::Printf(TEXT("Flee")));
+	}
+	else
+	{
+		Blackboard->SetValueAsBool("SawZombie", false);
+		Blackboard->SetValueAsBool("IsRunning", false);
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
+}
+
+UAttackTask::UAttackTask()
+{
+	
+}
+
+EBTNodeResult::Type UAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	return Super::ExecuteTask(OwnerComp, NodeMemory);
+}
+
+void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
 }
