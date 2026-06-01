@@ -263,7 +263,7 @@ void UStudentPerceptorJonckheereChloe::Shoot()
 		{
 			// No weapons to attack
 			m_pBlackBoard->SetValueAsBool("HasWeapon", false);
-			GEngine->AddOnScreenDebugMessage(3, 1.f, FColor::Red, 
+			GEngine->AddOnScreenDebugMessage(2, 5.f, FColor::Red, 
 	FString::Printf(TEXT("No weapon")));
 		}
 	}
@@ -395,11 +395,11 @@ bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
 	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
 	{
 		if (m_ItemsInInventory[index] == nullptr) continue;
-		if (m_ItemsInInventory[index]->GetItemType() == Item->GetItemType())
+		if (m_ItemsInInventory[index]->GetItemType() == Item->GetItemType() && m_ItemsInInventory[index]->GetValue() < Item->GetValue())
 		{
-			m_pInventory->RemoveItem(index); // Drop so we can pickup the more valuable version
 			GEngine->AddOnScreenDebugMessage(6, 3.f, FColor::Green, 
-	FString::Printf(TEXT("Dropped %s bc saw a more valuable one"), *ItemEnumToString(Item->GetItemType())));
+	FString::Printf(TEXT("Dropped %s, prev value %i new value %i"), *ItemEnumToString(Item->GetItemType()), m_ItemsInInventory[index]->GetValue(), Item->GetValue()));
+			m_pInventory->RemoveItem(index); // Drop so we can pickup the more valuable version
 			return true;
 		}
 	}
