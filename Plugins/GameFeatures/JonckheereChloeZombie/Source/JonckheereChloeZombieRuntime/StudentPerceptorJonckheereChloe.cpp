@@ -273,8 +273,28 @@ void UStudentPerceptorJonckheereChloe::Shoot()
 	}
 }
 
+void UStudentPerceptorJonckheereChloe::UpdateHasWeapon()
+{
+	m_ItemsInInventory = m_pInventory->GetInventory();
+	for (const auto& Item : m_ItemsInInventory)
+	{
+		if (Item == nullptr) continue;
+		if (Item->GetItemType() == EItemType::Shotgun || Item->GetItemType() == EItemType::Pistol)
+		{
+			m_pBlackBoard->SetValueAsBool("HasWeapon", true);
+			return;
+		}
+	}
+	m_pBlackBoard->SetValueAsBool("HasWeapon", false);
+}
+
 void UStudentPerceptorJonckheereChloe::AttackBehavior(const FVector& TargetLocation, float DeltaT)
 {
+	UpdateHasWeapon();
+	if (not m_pBlackBoard->GetValueAsBool("HasWeapon"))
+	{
+		return;
+	}
 	if (Face(TargetLocation, DeltaT)) // Only shoot if facing the zombie
 	{
 		Shoot();
@@ -432,11 +452,12 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
 	{
 		// Check if ran far enough
-		const float Distance{1000.f};
+		const float Distance{3000.f};
 		FVector ZombieLocation = Zombie->GetActorLocation();
-		if (FVector::Dist(Pawn->GetActorLocation(), ZombieLocation) <= Distance || Zombie == nullptr)
+		if (Zombie == nullptr)
 		{
 			Blackboard->SetValueAsBool("SawZombie", false);
+			DrawDebugSphere(GetWorld(), Pawn->GetActorLocation(), Distance, 32, FColor::Green, false, 0.1f);
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		}
 			
@@ -447,7 +468,7 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 		Perceptor->Face(AwayFromTarget, DeltaSeconds);
 		Blackboard->SetValueAsVector("Location", AwayFromTarget);
 		GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Red, FString::Printf(TEXT("Flee")));
-		DrawDebugSphere(GetWorld(), AwayFromTarget, 50.f, 12, FColor::Red, false, 0.1f);
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
 

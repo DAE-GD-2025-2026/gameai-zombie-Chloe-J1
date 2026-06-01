@@ -68,7 +68,7 @@ private:
 	
 	// ZOMBIE
 	void Shoot();
-	
+	void UpdateHasWeapon();
 	
 	// STATS
 	void ManageHealth();
