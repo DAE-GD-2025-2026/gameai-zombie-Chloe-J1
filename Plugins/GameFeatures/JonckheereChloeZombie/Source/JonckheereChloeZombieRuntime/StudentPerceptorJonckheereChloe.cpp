@@ -56,27 +56,6 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	m_pBlackBoard->SetValueAsFloat("Health", m_pHealth->GetHealth()); // Always update health
-	//ZOMBIE SPOTTED
-// 	if (m_pBlackBoard->GetValueAsBool("SawZombie"))
-// 	{
-// 		UObject* Object{m_pBlackBoard->GetValueAsObject("Zombie")};
-// 		if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
-// 		{
-// 			FVector ZombieLocation{Zombie->GetActorLocation()};
-//
-// 			FVector Dir = Flee(ZombieLocation);
-// 			Move(Dir);
-// 			Face(Dir, DeltaTime);
-// 			GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Red, 
-// FString::Printf(TEXT("Flee")));
-// 		}
-// 		if (Object == nullptr)
-// 		{
-// 			m_pBlackBoard->SetValueAsBool("SawZombie", false);
-// 			m_pBlackBoard->SetValueAsBool("IsRunning", false);
-// 			m_pBlackBoard->SetValueAsBool("IsAttacking", false);
-// 		}
-// 	}
 	
 	// STATS
 	ManageHealth();
@@ -182,6 +161,11 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 	{
 		GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
 	FString::Printf(TEXT("GRAB %s"), *Item->GetName()));
+		
+		if (Item->GetItemType() == EItemType::Shotgun || Item->GetItemType() == EItemType::Pistol)
+		{
+			m_pBlackBoard->SetValueAsBool("HasWeapon", true);
+		}
 	}
 }
 
@@ -455,22 +439,37 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	else
 	{
 		Blackboard->SetValueAsBool("SawZombie", false);
-		Blackboard->SetValueAsBool("IsRunning", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
 
 UAttackTask::UAttackTask()
 {
-	
+	NodeName = "Attack";
+	bNotifyTick = true;
 }
 
 EBTNodeResult::Type UAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	return Super::ExecuteTask(OwnerComp, NodeMemory);
+	return EBTNodeResult::InProgress;
 }
 
 void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+
+	UObject* Object = Blackboard->GetValueAsObject("Zombie");
+	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
+	{
+		Perceptor->AttackBehavior(Zombie->GetActorLocation(), DeltaSeconds);
+	}
+	else
+	{
+		Blackboard->SetValueAsBool("SawZombie", false);
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
 }

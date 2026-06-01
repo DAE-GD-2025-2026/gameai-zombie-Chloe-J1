@@ -39,6 +39,9 @@ public:
 	FVector Flee(const FVector& TargetLocation);
 	bool Face(const FVector& TargetLocation, float DeltaT);
 	void Move(const FVector& Direction);
+	
+	// ZOMBIE
+	void AttackBehavior(const FVector& TargetLocation, float DeltaT);
 private:
 	UBlackboardComponent* m_pBlackBoard{};
 	UInventoryComponent* m_pInventory{};
@@ -65,7 +68,7 @@ private:
 	
 	// ZOMBIE
 	void Shoot();
-	void AttackBehavior(const FVector& TargetLocation, float DeltaT);
+	
 	
 	// STATS
 	void ManageHealth();
