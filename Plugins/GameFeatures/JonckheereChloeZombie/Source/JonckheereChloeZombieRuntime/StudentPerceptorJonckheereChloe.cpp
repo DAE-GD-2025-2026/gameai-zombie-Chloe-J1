@@ -22,11 +22,8 @@ void UStudentPerceptorJonckheereChloe::BeginPlay()
 	Super::BeginPlay();
 
 	m_pInventory = GetOwner()->GetComponentByClass<UInventoryComponent>();
-	if (m_pInventory == nullptr) UE_LOG(LogTemp, Warning, TEXT("No inventory found!"));
 	m_pHealth = GetOwner()->GetComponentByClass<UHealthComponent>();
-	if (m_pHealth == nullptr) UE_LOG(LogTemp, Warning, TEXT("No health found!"));
 	m_pStamina = GetOwner()->GetComponentByClass<UStaminaComponent>();
-	if (m_pStamina == nullptr) UE_LOG(LogTemp, Warning, TEXT("No stamina found!"));
 	
 	m_MaxHealth = m_pHealth->GetMaxHealth();
 	m_MaxStamina = m_pStamina->GetMaxStamina();
@@ -56,6 +53,7 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	m_pBlackBoard->SetValueAsFloat("Health", m_pHealth->GetHealth()); // Always update health
+	m_pBlackBoard->SetValueAsFloat("Stamina", m_pStamina->GetCurrentStamina()); // Always update stamina
 	
 	// STATS
 	ManageHealth();
@@ -97,7 +95,7 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 			}
 			else
 			{
-				SaveLocation(Item);
+				SaveObject(Item);
 			}
 			
 			SpecifySeenItem(Item->GetItemType());
@@ -183,15 +181,21 @@ bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item)
 	return false;
 }
 
-void UStudentPerceptorJonckheereChloe::SaveLocation(ABaseItem* Item)
+void UStudentPerceptorJonckheereChloe::SaveObject(ABaseItem* Item)
 {
 	switch (Item->GetItemType())
 	{
 	case EItemType::Food:
-		m_pBlackBoard->SetValueAsVector("FoodLocation", Item->GetActorLocation());	
+		m_pBlackBoard->SetValueAsObject("Food", Item);	
 		break;
 	case EItemType::Medkit:
-		m_pBlackBoard->SetValueAsVector("MedkitLocation", Item->GetActorLocation());	
+		m_pBlackBoard->SetValueAsObject("Medkit", Item);	
+		break;
+	case EItemType::Shotgun:
+		m_pBlackBoard->SetValueAsObject("Shotgun", Item);	
+		break;
+	case EItemType::Pistol:
+		m_pBlackBoard->SetValueAsObject("Pistol", Item);	
 		break;
 	}
 }
@@ -301,8 +305,6 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 	constexpr float Threshold{0.1f};
 	const float RotSpeed{80.f};
 	double AngularVelocity{0.f};
-
-
 
 	FVector2D AgentForward(GetOwner()->GetActorForwardVector().X, GetOwner()->GetActorForwardVector().Y);
 
@@ -429,17 +431,23 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
 	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
 	{
+		// Check if ran far enough
+		const float Distance{1000.f};
 		FVector ZombieLocation = Zombie->GetActorLocation();
+		if (FVector::Dist(Pawn->GetActorLocation(), ZombieLocation) <= Distance || Zombie == nullptr)
+		{
+			Blackboard->SetValueAsBool("SawZombie", false);
+			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		}
+			
+		// Run away	
+		const float Offset{550.f};
 		FVector Dir = Perceptor->Flee(ZombieLocation);
-		Perceptor->Move(Dir);
-		FVector AwayFromTarget = Pawn->GetActorLocation() + Dir;
+		FVector AwayFromTarget = Pawn->GetActorLocation() + Dir * Offset;
 		Perceptor->Face(AwayFromTarget, DeltaSeconds);
+		Blackboard->SetValueAsVector("Location", AwayFromTarget);
 		GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Red, FString::Printf(TEXT("Flee")));
-	}
-	else
-	{
-		Blackboard->SetValueAsBool("SawZombie", false);
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		DrawDebugSphere(GetWorld(), AwayFromTarget, 50.f, 12, FColor::Red, false, 0.1f);
 	}
 }
 
@@ -473,3 +481,95 @@ void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
+
+UFetchWeapon::UFetchWeapon()
+{
+	NodeName = "Fetch weapon";
+}
+
+EBTNodeResult::Type UFetchWeapon::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+	
+	UObject* Object = Blackboard->GetValueAsObject("Shotgun");
+	if (ABaseItem* Shotgun = Cast<ABaseItem>(Object))
+	{
+		FVector Location{Shotgun->GetActorLocation()};
+		SetWeaponLocation(Location, Blackboard);
+	}
+	else
+	{
+		Object = Blackboard->GetValueAsObject("Pistol");
+		if (ABaseItem* Pistol = Cast<ABaseItem>(Object))
+		{
+			FVector Location{Pistol->GetActorLocation()};
+			SetWeaponLocation(Location, Blackboard);
+		}
+	}
+	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Orange, FString::Printf(TEXT("No weapons seen")));
+	return EBTNodeResult::Failed;
+}
+
+EBTNodeResult::Type UFetchWeapon::SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard)
+{
+	Blackboard->SetValueAsVector("WeaponLocation", Location);
+	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Green, FString::Printf(TEXT("Fetching pistol")));
+	return EBTNodeResult::Succeeded;
+}
+
+UFetchFood::UFetchFood()
+{
+	NodeName = "Fetch food";
+}
+
+EBTNodeResult::Type UFetchFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+	
+	UObject* Object = Blackboard->GetValueAsObject("Food");
+	if (ABaseItem* Food = Cast<ABaseItem>(Object))
+	{
+		FVector Location{Food->GetActorLocation()};
+		Blackboard->SetValueAsVector("FoodLocation", Location);
+		GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Green, FString::Printf(TEXT("Fetching food")));
+		return EBTNodeResult::Succeeded;
+	}
+
+	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Orange, FString::Printf(TEXT("No food seen")));
+	return EBTNodeResult::Failed;
+}
+
+UFetchMedkit::UFetchMedkit()
+{
+	NodeName = "Fetch medkit";
+}
+
+EBTNodeResult::Type UFetchMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+	
+	UObject* Object = Blackboard->GetValueAsObject("Medkit");
+	if (ABaseItem* Food = Cast<ABaseItem>(Object))
+	{
+		FVector Location{Food->GetActorLocation()};
+		Blackboard->SetValueAsVector("MedkitLocation", Location);
+		GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Green, FString::Printf(TEXT("Fetching medkit")));
+		return EBTNodeResult::Succeeded;
+	}
+
+	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Orange, FString::Printf(TEXT("No medkit seen")));
+	return EBTNodeResult::Failed;
+}
+

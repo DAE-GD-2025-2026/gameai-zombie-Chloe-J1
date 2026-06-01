@@ -56,7 +56,7 @@ private:
 	int GetFreeSlot() const;
 	void GrabItem(ABaseItem* Item);
 	bool HasItem(ABaseItem* Item);
-	void SaveLocation(ABaseItem* Item);
+	void SaveObject(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
 	bool UseItem(const EItemType& ItemType);
 	bool IsMoreValuable(ABaseItem* Item);
@@ -100,4 +100,43 @@ public:
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;	
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchWeapon final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UFetchWeapon();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	
+private:
+	EBTNodeResult::Type SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard);
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchFood final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UFetchFood();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchMedkit final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UFetchMedkit();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
