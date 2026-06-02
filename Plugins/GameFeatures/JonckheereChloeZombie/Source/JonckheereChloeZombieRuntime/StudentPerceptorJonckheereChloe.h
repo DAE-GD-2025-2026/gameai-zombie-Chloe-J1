@@ -64,7 +64,9 @@ private:
 	// HOUSE
 	void EnterHouse(AHouse* House);
 	bool CanVisitHouse(AHouse* House);
+	void UpdateDistanceToVillage(const FVector& SelfLocation);
 	std::vector<AHouse*> m_VisitedHouses{};
+	std::vector<FVector> m_HouseLocations{};
 	
 	// ZOMBIE
 	void Shoot();

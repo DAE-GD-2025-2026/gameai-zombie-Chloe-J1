@@ -58,6 +58,8 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 	// STATS
 	ManageHealth();
 	ManageStamina();
+	
+	UpdateDistanceToVillage(GetOwner()->GetActorLocation());
 }
 
 void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -224,6 +226,7 @@ void UStudentPerceptorJonckheereChloe::EnterHouse(AHouse* House)
 	m_pBlackBoard->SetValueAsBool("SawHouse", true);
 	m_pBlackBoard->SetValueAsObject("LastVisitedHouse", House);
 	m_pBlackBoard->SetValueAsVector("HouseLocation", House->GetBounds().Origin);
+	m_HouseLocations.push_back(House->GetBounds().Origin);
 }
 
 bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
@@ -237,6 +240,20 @@ bool UStudentPerceptorJonckheereChloe::CanVisitHouse(AHouse* House)
 	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Blue, 
 	FString::Printf(TEXT("cannot enter")));
 	return false;
+}
+
+void UStudentPerceptorJonckheereChloe::UpdateDistanceToVillage(const FVector& SelfLocation)
+{
+	float ClosestDistanceToVillage{FLT_MAX};
+	for (const auto& HouseLocation : m_HouseLocations)
+	{
+		float NewDist{(float)FVector::Dist2D(HouseLocation, SelfLocation)};
+		if (NewDist < ClosestDistanceToVillage)
+		{
+			ClosestDistanceToVillage = NewDist;
+		}
+	}
+	m_pBlackBoard->SetValueAsFloat("DistanceToVillage", ClosestDistanceToVillage);
 }
 
 void UStudentPerceptorJonckheereChloe::Shoot()
