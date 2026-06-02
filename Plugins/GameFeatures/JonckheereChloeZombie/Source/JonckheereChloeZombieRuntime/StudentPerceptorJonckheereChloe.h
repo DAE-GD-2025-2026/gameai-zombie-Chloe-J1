@@ -87,6 +87,9 @@ public:
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	
+private:
+	void CalcDir(const FVector& SelfLocation, const FVector& TargetLocation, AAIController* Controller);
 };
 
 UCLASS()
@@ -114,7 +117,7 @@ protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	
 private:
-	EBTNodeResult::Type SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard);
+	void SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard);
 };
 
 UCLASS()

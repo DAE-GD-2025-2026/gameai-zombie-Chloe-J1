@@ -263,14 +263,8 @@ void UStudentPerceptorJonckheereChloe::Shoot()
 			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
 			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
 		}
-		else
-		{
-			// No weapons to attack
-			m_pBlackBoard->SetValueAsBool("HasWeapon", false);
-			GEngine->AddOnScreenDebugMessage(2, 5.f, FColor::Red, 
-	FString::Printf(TEXT("No weapon")));
-		}
 	}
+	UpdateHasWeapon();
 }
 
 void UStudentPerceptorJonckheereChloe::UpdateHasWeapon()
@@ -437,6 +431,16 @@ UFleeTask::UFleeTask()
 
 EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+
+	UObject* Object = Blackboard->GetValueAsObject("Zombie");
+	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
+	if (!Zombie) return EBTNodeResult::Failed;
+
+	CalcDir(Pawn->GetActorLocation(), Zombie->GetActorLocation(), Controller);
+
 	return EBTNodeResult::InProgress;
 }
 
@@ -444,32 +448,36 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
-	
-	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
-	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
+	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
+
+	
+	if (not Zombie) // Zombie dead
 	{
-		// Check if ran far enough
-		const float Distance{3000.f};
-		FVector ZombieLocation = Zombie->GetActorLocation();
-		if (Zombie == nullptr)
-		{
-			Blackboard->SetValueAsBool("SawZombie", false);
-			DrawDebugSphere(GetWorld(), Pawn->GetActorLocation(), Distance, 32, FColor::Green, false, 0.1f);
-			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-		}
-			
-		// Run away	
-		const float Offset{550.f};
-		FVector Dir = Perceptor->Flee(ZombieLocation);
-		FVector AwayFromTarget = Pawn->GetActorLocation() + Dir * Offset;
-		Perceptor->Face(AwayFromTarget, DeltaSeconds);
-		Blackboard->SetValueAsVector("Location", AwayFromTarget);
-		GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Red, FString::Printf(TEXT("Flee")));
+		Blackboard->SetValueAsBool("SawZombie", false);
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		return;
+	}
+	
+	CalcDir(Pawn->GetActorLocation(), Zombie->GetActorLocation(), Controller);
+	// Distance
+	const float SafeDistance{1500.f};
+	if (FVector::Dist(Pawn->GetActorLocation(), Zombie->GetActorLocation()) >= SafeDistance)
+	{
+		Blackboard->SetValueAsBool("SawZombie", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
+}
+
+void UFleeTask::CalcDir(const FVector& SelfLocation, const FVector& TargetLocation, AAIController* Controller)
+{
+	FVector FleeDir = (SelfLocation - TargetLocation).GetSafeNormal();
+	FVector FleeTarget = SelfLocation + FleeDir * 800.f;
+	Controller->MoveToLocation(FleeTarget);
+	GEngine->AddOnScreenDebugMessage(6, 3.f, FColor::Green, 
+	FString::Printf(TEXT("%f %f %f"), FleeTarget.X, FleeTarget.Y, FleeTarget.Z));
 }
 
 UAttackTask::UAttackTask()
@@ -521,6 +529,7 @@ EBTNodeResult::Type UFetchWeapon::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	{
 		FVector Location{Shotgun->GetActorLocation()};
 		SetWeaponLocation(Location, Blackboard);
+		return EBTNodeResult::Succeeded;
 	}
 	else
 	{
@@ -529,17 +538,17 @@ EBTNodeResult::Type UFetchWeapon::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 		{
 			FVector Location{Pistol->GetActorLocation()};
 			SetWeaponLocation(Location, Blackboard);
+			return EBTNodeResult::Succeeded;
 		}
 	}
 	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Orange, FString::Printf(TEXT("No weapons seen")));
 	return EBTNodeResult::Failed;
 }
 
-EBTNodeResult::Type UFetchWeapon::SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard)
+void UFetchWeapon::SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard)
 {
 	Blackboard->SetValueAsVector("WeaponLocation", Location);
 	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Green, FString::Printf(TEXT("Fetching pistol")));
-	return EBTNodeResult::Succeeded;
 }
 
 UFetchFood::UFetchFood()
