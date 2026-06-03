@@ -42,6 +42,9 @@ public:
 	
 	// ZOMBIE
 	void AttackBehavior(const FVector& TargetLocation, float DeltaT);
+	
+	// ITEMS
+	bool UseItem(const EItemType& ItemType);
 private:
 	UBlackboardComponent* m_pBlackBoard{};
 	UInventoryComponent* m_pInventory{};
@@ -58,7 +61,6 @@ private:
 	bool HasItem(ABaseItem* Item);
 	void SaveObject(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
-	bool UseItem(const EItemType& ItemType);
 	bool IsMoreValuable(ABaseItem* Item);
 	
 	// HOUSE
@@ -71,10 +73,6 @@ private:
 	// ZOMBIE
 	void Shoot();
 	void UpdateHasWeapon();
-	
-	// STATS
-	void ManageHealth();
-	void ManageStamina();
 };
 
 // TASKS
@@ -141,6 +139,30 @@ class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchMedkit final : public UBTTaskNode
 	
 public:
 	UFetchMedkit();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UConsumeMedkit final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UConsumeMedkit();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UConsumeFood final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UConsumeFood();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

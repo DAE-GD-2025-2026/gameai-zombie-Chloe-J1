@@ -55,10 +55,6 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 	m_pBlackBoard->SetValueAsFloat("Health", m_pHealth->GetHealth()); // Always update health
 	m_pBlackBoard->SetValueAsFloat("Stamina", m_pStamina->GetCurrentStamina()); // Always update stamina
 	
-	// STATS
-	ManageHealth();
-	ManageStamina();
-	
 	UpdateDistanceToVillage(GetOwner()->GetActorLocation());
 }
 
@@ -403,22 +399,6 @@ void UStudentPerceptorJonckheereChloe::Move(const FVector& Direction)
 	}
 }
 
-void UStudentPerceptorJonckheereChloe::ManageHealth()
-{
-	if (m_pHealth->GetHealth() <= m_MaxHealth / 2.f)
-	{
-		UseItem(EItemType::Medkit);
-	}
-}
-
-void UStudentPerceptorJonckheereChloe::ManageStamina()
-{
-	if (m_pStamina->GetCurrentStamina() <= m_MaxStamina / 2.f)
-	{
-		UseItem(EItemType::Food);
-	}
-}
-
 bool UStudentPerceptorJonckheereChloe::UseItem(const EItemType& ItemType)
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
@@ -637,5 +617,33 @@ EBTNodeResult::Type UFetchMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 
 	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Orange, FString::Printf(TEXT("No medkit seen")));
 	return EBTNodeResult::Failed;
+}
+
+UConsumeMedkit::UConsumeMedkit()
+{
+	NodeName = "Consume medkit";
+}
+
+EBTNodeResult::Type UConsumeMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	Perceptor->UseItem(EItemType::Medkit);
+	return EBTNodeResult::Succeeded;
+}
+
+UConsumeFood::UConsumeFood()
+{
+	NodeName = "Consume medkit";
+}
+
+EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	Perceptor->UseItem(EItemType::Food);
+	return EBTNodeResult::Succeeded;
 }
 
