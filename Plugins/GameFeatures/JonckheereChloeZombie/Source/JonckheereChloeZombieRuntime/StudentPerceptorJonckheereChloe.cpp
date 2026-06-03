@@ -259,29 +259,48 @@ void UStudentPerceptorJonckheereChloe::UpdateDistanceToVillage(const FVector& Se
 void UStudentPerceptorJonckheereChloe::Shoot()
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
-	// Look for a weapon to use - later we can base the chosen weapon on our health or smth
-	for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
+	// Look for a weapon to use
+	EItemType PreferredWeapon{};
+	EItemType SecondChoise{};
+	
+	UObject* Object = m_pBlackBoard->GetValueAsObject("Zombie");
+	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
 	{
-		if (m_ItemsInInventory[index] == nullptr) continue;
+		const float Radius{300.f};
+		if (FVector::Dist2D(Zombie->GetActorLocation(), GetOwner()->GetActorLocation()) < Radius)
+		{
+			PreferredWeapon = EItemType::Shotgun;
+			SecondChoise = EItemType::Pistol;
+		}
+		else
+		{
+			PreferredWeapon = EItemType::Pistol;
+			SecondChoise = EItemType::Shotgun;
+		}
+	
+		for (int index{0}; index < m_ItemsInInventory.Num(); ++index)
+		{
+			if (m_ItemsInInventory[index] == nullptr) continue;
 		
-		if (UseItem(EItemType::Shotgun))
-		{
-			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
-	FString::Printf(TEXT("SHOOT")));
-			FVector Start = GetOwner()->GetActorLocation();
-			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
-			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+			if (UseItem(PreferredWeapon))
+			{
+				GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
+		FString::Printf(TEXT("SHOOT")));
+				FVector Start = GetOwner()->GetActorLocation();
+				FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
+				DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+			}
+			else if (UseItem(SecondChoise))
+			{
+				GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
+		FString::Printf(TEXT("SHOOT")));
+				FVector Start = GetOwner()->GetActorLocation();
+				FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
+				DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+			}
 		}
-		else if (UseItem(EItemType::Pistol))
-		{
-			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
-	FString::Printf(TEXT("SHOOT")));
-			FVector Start = GetOwner()->GetActorLocation();
-			FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
-			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
-		}
+		UpdateHasWeapon();
 	}
-	UpdateHasWeapon();
 }
 
 void UStudentPerceptorJonckheereChloe::UpdateHasWeapon()
