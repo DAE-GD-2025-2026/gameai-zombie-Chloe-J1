@@ -496,6 +496,22 @@ void UFleeTask::CalcDir(const FVector& SelfLocation, const FVector& TargetLocati
 	FString::Printf(TEXT("%f %f %f"), FleeTarget.X, FleeTarget.Y, FleeTarget.Z));
 }
 
+EBTNodeResult::Type USprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	Cast<ASurvivorPawn>(Pawn)->StartRunning();
+	return EBTNodeResult::Succeeded;
+}
+
+EBTNodeResult::Type UStopSprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	Cast<ASurvivorPawn>(Pawn)->StopRunning();
+	return EBTNodeResult::Succeeded;
+}
+
 UAttackTask::UAttackTask()
 {
 	NodeName = "Attack";

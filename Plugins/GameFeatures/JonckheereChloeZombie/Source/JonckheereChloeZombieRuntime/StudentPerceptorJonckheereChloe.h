@@ -93,6 +93,30 @@ private:
 };
 
 UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API USprint final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	USprint() = default;
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UStopSprint final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UStopSprint() = default;
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+};
+
+UCLASS()
 class JONCKHEERECHLOEZOMBIERUNTIME_API UAttackTask final : public UBTTaskNode
 {
 	GENERATED_BODY()
