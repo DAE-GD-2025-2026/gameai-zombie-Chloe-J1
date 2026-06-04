@@ -9,7 +9,6 @@
 #include "Village/House/House.h"
 #include "DrawDebugHelpers.h"
 #include "Survivor/SurvivorPawn.h"
-#include "Zombies/BaseZombie.h"
 
 UStudentPerceptorJonckheereChloe::UStudentPerceptorJonckheereChloe()
 {
@@ -462,9 +461,7 @@ EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, ui
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
 	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
 	if (!Zombie) return EBTNodeResult::Failed;
-
-	CalcDir(Pawn->GetActorLocation(), Zombie->GetActorLocation(), Controller);
-
+	m_Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	return EBTNodeResult::InProgress;
 }
 
@@ -476,32 +473,30 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
 	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
-
 	
 	if (not Zombie) // Zombie dead
 	{
+		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
+	FString::Printf(TEXT("ZOMBIE DIED")));
 		Blackboard->SetValueAsBool("SawZombie", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		return;
 	}
 	
-	CalcDir(Pawn->GetActorLocation(), Zombie->GetActorLocation(), Controller);
+	FVector Dir{m_Perceptor->Flee(Zombie->GetActorLocation())};
+	m_Perceptor->Move(Dir);
+	FVector AwayFromTarget = Pawn->GetActorLocation() + Dir;
+	m_Perceptor->Face(AwayFromTarget, DeltaSeconds);
+	
 	// Distance
 	const float SafeDistance{1500.f};
 	if (FVector::Dist(Pawn->GetActorLocation(), Zombie->GetActorLocation()) >= SafeDistance)
 	{
+		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
+	FString::Printf(TEXT("SAFE SPOT")));
 		Blackboard->SetValueAsBool("SawZombie", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
-}
-
-void UFleeTask::CalcDir(const FVector& SelfLocation, const FVector& TargetLocation, AAIController* Controller)
-{
-	FVector FleeDir = (SelfLocation - TargetLocation).GetSafeNormal();
-	FVector FleeTarget = SelfLocation + FleeDir * 800.f;
-	Controller->MoveToLocation(FleeTarget);
-	GEngine->AddOnScreenDebugMessage(6, 3.f, FColor::Green, 
-	FString::Printf(TEXT("%f %f %f"), FleeTarget.X, FleeTarget.Y, FleeTarget.Z));
 }
 
 EBTNodeResult::Type USprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

@@ -12,6 +12,7 @@
 #include "Common/InventoryComponent.h"
 #include "Common/HealthComponent.h"
 #include "Common/StaminaComponent.h"
+#include "Zombies/BaseZombie.h"
 #include <vector>
 #include "BehaviorTree/BTTaskNode.h"
 #include "StudentPerceptorJonckheereChloe.generated.h"
@@ -90,6 +91,7 @@ protected:
 	
 private:
 	void CalcDir(const FVector& SelfLocation, const FVector& TargetLocation, AAIController* Controller);
+	UStudentPerceptorJonckheereChloe* m_Perceptor{};
 };
 
 UCLASS()
