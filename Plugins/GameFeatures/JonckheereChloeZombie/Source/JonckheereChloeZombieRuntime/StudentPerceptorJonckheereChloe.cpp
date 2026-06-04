@@ -162,6 +162,14 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 		{
 			m_pBlackBoard->SetValueAsBool("HasWeapon", true);
 		}
+		else if (Item->GetItemType() == EItemType::Medkit)
+		{
+			m_pBlackBoard->SetValueAsBool("HasMedkit", true);
+		}
+		else if (Item->GetItemType() == EItemType::Food)
+		{
+			m_pBlackBoard->SetValueAsBool("HasFood", true);
+		}
 	}
 }
 
@@ -645,13 +653,14 @@ EBTNodeResult::Type UConsumeMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
 	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
-	Perceptor->UseItem(EItemType::Medkit);
+	if (Perceptor->UseItem(EItemType::Medkit))
+		Controller->GetBlackboardComponent()->SetValueAsBool("HasMedkit", false);
 	return EBTNodeResult::Succeeded;
 }
 
 UConsumeFood::UConsumeFood()
 {
-	NodeName = "Consume medkit";
+	NodeName = "Consume food";
 }
 
 EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -659,7 +668,8 @@ EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
 	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
-	Perceptor->UseItem(EItemType::Food);
+	if (Perceptor->UseItem(EItemType::Food))
+		Controller->GetBlackboardComponent()->SetValueAsBool("HasFood", false);
 	return EBTNodeResult::Succeeded;
 }
 
