@@ -8,6 +8,8 @@
 #include "Items/BaseItem.h"
 #include "Village/House/House.h"
 #include "DrawDebugHelpers.h"
+#include "Items/Pistol.h"
+#include "Items/Shotgun.h"
 #include "Survivor/SurvivorPawn.h"
 
 UStudentPerceptorJonckheereChloe::UStudentPerceptorJonckheereChloe()
@@ -108,8 +110,6 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 			{
 				m_pBlackBoard->SetValueAsBool("SawZombie", true);
 				m_pBlackBoard->SetValueAsObject("Zombie", Zombie);
-				FVector Dir = Flee(m_pBlackBoard->GetValueAsVector("ZombieLocation"));
-				Cast<APawn>(GetOwner())->AddMovementInput(Dir);
 			}
 		}
 	}
@@ -400,24 +400,23 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 
 void UStudentPerceptorJonckheereChloe::Move(const FVector& Direction)
 {
-	if (/*m_pStamina->GetCurrentStamina() > 0*/true) // only move when stamina left
+	if (m_pStamina->GetCurrentStamina() > 0) // only move when stamina left
 	{
 		FCollisionQueryParams CollisionParams{};
 		CollisionParams.AddIgnoredActor(GetOwner());
 		auto const End = GetOwner()->GetActorLocation() + Direction * 70.0f;
-		if (FHitResult HitResult{}; 
-			GetWorld()->LineTraceSingleByChannel(HitResult, GetOwner()->GetActorLocation(), End, 
-				ECC_Pawn, CollisionParams))
+		FHitResult HitResult{}; 
+		GetWorld()->LineTraceSingleByChannel(HitResult, GetOwner()->GetActorLocation(), End, 
+			ECC_Pawn, CollisionParams);
+
+		if (HitResult.bBlockingHit)
 		{
-			if (HitResult.bBlockingHit)
-			{
-				FRotator Rotation{0.f, 30.f,0.f};
-				GetOwner()->AddActorLocalRotation(Rotation);
-				GEngine->AddOnScreenDebugMessage(16, 1.f, FColor::Magenta, FString::Printf(TEXT("BLOCKED")));
-			}
+			FRotator Rotation{0.f, 5.f,0.f};
+			GetOwner()->AddActorLocalRotation(Rotation);
 		}
-		Cast<APawn>(GetOwner())->AddMovementInput(Direction);
 	}
+
+	Cast<APawn>(GetOwner())->AddMovementInput(Direction);
 }
 
 bool UStudentPerceptorJonckheereChloe::UseItem(const EItemType& ItemType)
@@ -568,21 +567,25 @@ EBTNodeResult::Type UFetchWeapon::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 	
-	UObject* Object = Blackboard->GetValueAsObject("Shotgun");
-	if (ABaseItem* Shotgun = Cast<ABaseItem>(Object))
+	if (UObject* Object = Blackboard->GetValueAsObject("Shotgun"))
 	{
-		FVector Location{Shotgun->GetActorLocation()};
-		SetWeaponLocation(Location, Blackboard);
-		return EBTNodeResult::Succeeded;
+		if (AShotgun* Shotgun = Cast<AShotgun>(Object))
+		{
+			FVector Location{Shotgun->GetActorLocation()};
+			SetWeaponLocation(Location, Blackboard);
+			return EBTNodeResult::Succeeded;
+		}
 	}
 	else
 	{
-		Object = Blackboard->GetValueAsObject("Pistol");
-		if (ABaseItem* Pistol = Cast<ABaseItem>(Object))
+		if (UObject* Object1 = Blackboard->GetValueAsObject("Pistol"))
 		{
-			FVector Location{Pistol->GetActorLocation()};
-			SetWeaponLocation(Location, Blackboard);
-			return EBTNodeResult::Succeeded;
+			if (APistol* Pistol = Cast<APistol>(Object1))
+			{
+				FVector Location{Pistol->GetActorLocation()};
+				SetWeaponLocation(Location, Blackboard);
+				return EBTNodeResult::Succeeded;
+			}
 		}
 	}
 	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Orange, FString::Printf(TEXT("No weapons seen")));
