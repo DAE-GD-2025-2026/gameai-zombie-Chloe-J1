@@ -72,7 +72,7 @@ private:
 	// ITEMS
 	TArray<ABaseItem*> m_ItemsInInventory{};
 	
-	FString ItemEnumToString(const EItemType& itemType) const;
+	FString ItemEnumToString(const EItemType& ItemType) const;
 	int GetFreeSlot() const;
 	void GrabItem(ABaseItem* Item);
 	bool HasItem(ABaseItem* Item);
@@ -93,25 +93,6 @@ private:
 	
 	std::vector<std::function<SteeringOutput()>> m_PriorityBehaviors{};
 };
-
-// // STEERING
-// class JONCKHEERECHLOEZOMBIERUNTIME_API SteeringBehavior
-// {
-// public:
-// 	static SteeringOutput Calc(const FVector& TargetLocation, const FVector& ActorLocation) = 0;
-// };
-//
-// class JONCKHEERECHLOEZOMBIERUNTIME_API Seek : public SteeringBehavior
-// {
-// public:
-// 	static SteeringOutput Calc(const FVector& TargetLocation, const FVector& ActorLocation);
-// };
-//
-// class JONCKHEERECHLOEZOMBIERUNTIME_API Flee final : public Seek
-// {
-// public:
-// 	static SteeringOutput Calc(const FVector& TargetLocation, const FVector& ActorLocation);
-// };
 
 // TASKS
 UCLASS()

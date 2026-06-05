@@ -115,9 +115,9 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 	}
 }
 
-FString UStudentPerceptorJonckheereChloe::ItemEnumToString(const EItemType& itemType) const
+FString UStudentPerceptorJonckheereChloe::ItemEnumToString(const EItemType& ItemType) const
 {
-	switch (itemType)
+	switch (ItemType)
 	{
 	case EItemType::Garbage:
 		return "Garbage";
@@ -175,14 +175,34 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item)
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
-	for (const auto& ItemInv : m_ItemsInInventory)
+	
+	if (Item->GetItemType() == EItemType::Food)
 	{
-		if (ItemInv == nullptr) continue;
-		if (Item->GetItemType() == ItemInv->GetItemType())
+		int NrFood{};
+		const int MaxNrFood{2};
+		for (const auto& ItemInv : m_ItemsInInventory)
 		{
+			if (ItemInv == nullptr) continue;
+			if (EItemType::Food == ItemInv->GetItemType())
+			{
+				NrFood++;
+			}
+		}
+		if (NrFood >= MaxNrFood)
 			return true;
+	}
+	else
+	{
+		for (const auto& ItemInv : m_ItemsInInventory)
+		{
+			if (ItemInv == nullptr) continue;
+			if (Item->GetItemType() == ItemInv->GetItemType())
+			{
+				return true;
+			}
 		}
 	}
+	
 	return false;
 }
 
@@ -504,20 +524,6 @@ bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
 	}
 	return false;
 }
-
-// SteeringOutput Seek::Calc(const FVector& TargetLocation, const FVector& ActorLocation)
-// {
-// 	FVector Dir{(FVector(TargetLocation) - ActorLocation)};
-// 	Dir.Z = 0;
-// 	return Dir;
-// }
-//
-// SteeringOutput Flee::Calc(const FVector& TargetLocation, const FVector& ActorLocation)
-// {
-// 	SteeringOutput Steering{Seek::Calc(TargetLocation, ActorLocation)};
-// 	Steering.Direction *= -1;
-// 	return  Steering;
-// }
 
 // TASKS
 UFleeTask::UFleeTask()
