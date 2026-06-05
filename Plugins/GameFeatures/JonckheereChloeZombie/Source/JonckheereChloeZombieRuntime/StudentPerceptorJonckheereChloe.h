@@ -13,12 +13,24 @@
 #include "Common/HealthComponent.h"
 #include "Common/StaminaComponent.h"
 #include "Zombies/BaseZombie.h"
+#include <functional>
 #include <vector>
 #include "BehaviorTree/BTTaskNode.h"
 #include "StudentPerceptorJonckheereChloe.generated.h"
 
 class ABaseItem;
 class AHouse;
+
+struct SteeringOutput final
+{
+	SteeringOutput() = default;
+	SteeringOutput(FVector Dir):
+		Direction(Dir)
+	{
+	}
+	FVector Direction{};
+	bool IsValid{true};
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class JONCKHEERECHLOEZOMBIERUNTIME_API UStudentPerceptorJonckheereChloe : public UActorComponent
@@ -36,10 +48,14 @@ public:
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 	
 	// STEERING
-	FVector Seek(const FVector& TargetLocation);
-	FVector Flee(const FVector& TargetLocation);
+	SteeringOutput Seek(const FVector& TargetLocation);
+	SteeringOutput Flee(const FVector& TargetLocation);
 	bool Face(const FVector& TargetLocation, float DeltaT);
 	void Move(const FVector& Direction);
+	SteeringOutput Avoid(const FVector& TargetLocation);
+	SteeringOutput Priority();
+	void AddPriorityBehavior(std::function<SteeringOutput()> behavior);
+	void ClearPriorityBehaviors();
 	
 	// ZOMBIE
 	void AttackBehavior(const FVector& TargetLocation, float DeltaT);
@@ -74,7 +90,28 @@ private:
 	// ZOMBIE
 	void Shoot();
 	void UpdateHasWeapon();
+	
+	std::vector<std::function<SteeringOutput()>> m_PriorityBehaviors{};
 };
+
+// // STEERING
+// class JONCKHEERECHLOEZOMBIERUNTIME_API SteeringBehavior
+// {
+// public:
+// 	static SteeringOutput Calc(const FVector& TargetLocation, const FVector& ActorLocation) = 0;
+// };
+//
+// class JONCKHEERECHLOEZOMBIERUNTIME_API Seek : public SteeringBehavior
+// {
+// public:
+// 	static SteeringOutput Calc(const FVector& TargetLocation, const FVector& ActorLocation);
+// };
+//
+// class JONCKHEERECHLOEZOMBIERUNTIME_API Flee final : public Seek
+// {
+// public:
+// 	static SteeringOutput Calc(const FVector& TargetLocation, const FVector& ActorLocation);
+// };
 
 // TASKS
 UCLASS()
@@ -90,7 +127,6 @@ protected:
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	
 private:
-	void CalcDir(const FVector& SelfLocation, const FVector& TargetLocation, AAIController* Controller);
 	UStudentPerceptorJonckheereChloe* m_Perceptor{};
 };
 

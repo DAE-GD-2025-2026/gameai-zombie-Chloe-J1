@@ -336,21 +336,23 @@ void UStudentPerceptorJonckheereChloe::AttackBehavior(const FVector& TargetLocat
 	// Walk backwards whilst trying to shoot a zombie
 	if (FVector::Dist(GetOwner()->GetActorLocation(), TargetLocation) <= Radius)
 	{
-		FVector Dir = Flee(TargetLocation);
-		Move(Dir);
+		SteeringOutput Steering = Flee(TargetLocation);
+		Move(Steering.Direction);
 	}
 }
 
-FVector UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
+SteeringOutput UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
 {
 	FVector Dir{(FVector(TargetLocation) - GetOwner()->GetActorLocation()).GetSafeNormal()};
 	Dir.Z = 0;
 	return Dir;
 }
 
-FVector UStudentPerceptorJonckheereChloe::Flee(const FVector& TargetLocation)
+SteeringOutput UStudentPerceptorJonckheereChloe::Flee(const FVector& TargetLocation)
 {
-	return Seek(TargetLocation) *= -1;
+	SteeringOutput Steering{Seek(TargetLocation)};
+	Steering.Direction *= -1;
+	return  Steering;
 }
 
 bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float DeltaT)
@@ -402,21 +404,66 @@ void UStudentPerceptorJonckheereChloe::Move(const FVector& Direction)
 {
 	if (m_pStamina->GetCurrentStamina() > 0) // only move when stamina left
 	{
-		FCollisionQueryParams CollisionParams{};
-		CollisionParams.AddIgnoredActor(GetOwner());
-		auto const End = GetOwner()->GetActorLocation() + Direction * 70.0f;
-		FHitResult HitResult{}; 
-		GetWorld()->LineTraceSingleByChannel(HitResult, GetOwner()->GetActorLocation(), End, 
-			ECC_Pawn, CollisionParams);
+		Cast<APawn>(GetOwner())->AddMovementInput(Direction);
+	}
+}
 
-		if (HitResult.bBlockingHit)
+SteeringOutput UStudentPerceptorJonckheereChloe::Avoid(const FVector& TargetLocation)
+{
+	SteeringOutput Steering{};
+	constexpr float StepSize{30.f};
+	FCollisionQueryParams CollisionParams{};
+	CollisionParams.AddIgnoredActor(GetOwner());
+	const FVector Start = GetOwner()->GetActorLocation();
+
+	for (float Angle = 0.f; Angle < 360.f; Angle += StepSize)
+	{
+		// Try find an angle where there is no obstacle in front of you
+		FVector FreeDir = TargetLocation.RotateAngleAxis(Angle, FVector::UpVector);
+		FreeDir.Z = 0;
+
+		FHitResult HitResult{};
+		GetWorld()->LineTraceSingleByChannel(HitResult, Start,
+			Start + FreeDir * 170.f, ECC_Pawn, CollisionParams);
+
+		if (!HitResult.bBlockingHit)
 		{
-			FRotator Rotation{0.f, 5.f,0.f};
-			GetOwner()->AddActorLocalRotation(Rotation);
+			Steering.IsValid = true;
+			Steering.Direction = FreeDir.GetSafeNormal();
+			return Steering;
 		}
 	}
+	
+	Steering.IsValid = false;
+	Steering.Direction = TargetLocation;
+	return Steering;
+}
 
-	Cast<APawn>(GetOwner())->AddMovementInput(Direction);
+SteeringOutput UStudentPerceptorJonckheereChloe::Priority()
+{
+	SteeringOutput Steering = {};
+
+	for (auto Behavior : m_PriorityBehaviors)
+	{
+		Steering = Behavior();
+	
+		if (Steering.IsValid)
+		{
+			break;
+		}
+	}
+	// No valid behavior
+	return Steering;
+}
+
+void UStudentPerceptorJonckheereChloe::AddPriorityBehavior(std::function<SteeringOutput()> behavior)
+{
+	m_PriorityBehaviors.push_back(behavior);
+}
+
+void UStudentPerceptorJonckheereChloe::ClearPriorityBehaviors()
+{
+	m_PriorityBehaviors.clear();
 }
 
 bool UStudentPerceptorJonckheereChloe::UseItem(const EItemType& ItemType)
@@ -458,6 +505,20 @@ bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
 	return false;
 }
 
+// SteeringOutput Seek::Calc(const FVector& TargetLocation, const FVector& ActorLocation)
+// {
+// 	FVector Dir{(FVector(TargetLocation) - ActorLocation)};
+// 	Dir.Z = 0;
+// 	return Dir;
+// }
+//
+// SteeringOutput Flee::Calc(const FVector& TargetLocation, const FVector& ActorLocation)
+// {
+// 	SteeringOutput Steering{Seek::Calc(TargetLocation, ActorLocation)};
+// 	Steering.Direction *= -1;
+// 	return  Steering;
+// }
+
 // TASKS
 UFleeTask::UFleeTask()
 {
@@ -475,6 +536,19 @@ EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, ui
 	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
 	if (!Zombie) return EBTNodeResult::Failed;
 	m_Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	m_Perceptor->ClearPriorityBehaviors();
+	
+	m_Perceptor->AddPriorityBehavior([this, Zombie]()
+	{
+		FVector FleeDir = m_Perceptor->Flee(Zombie->GetActorLocation()).Direction;
+		return m_Perceptor->Avoid(FleeDir);
+	});
+
+	m_Perceptor->AddPriorityBehavior([this, Zombie]()
+	{
+		return m_Perceptor->Flee(Zombie->GetActorLocation());
+	});
+	
 	return EBTNodeResult::InProgress;
 }
 
@@ -487,10 +561,10 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
 	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
 	
-	FVector Dir{m_Perceptor->Flee(Zombie->GetActorLocation())};
-	m_Perceptor->Move(Dir);
-	FVector AwayFromTarget = Pawn->GetActorLocation() + Dir;
-	m_Perceptor->Face(AwayFromTarget, DeltaSeconds);
+	SteeringOutput Output = m_Perceptor->Priority();
+
+	m_Perceptor->Move(Output.Direction);
+	m_Perceptor->Face(Pawn->GetActorLocation() + Output.Direction * 100.f, DeltaSeconds);
 	
 	// Distance
 	const float SafeDistance{1500.f};
