@@ -400,8 +400,22 @@ bool UStudentPerceptorJonckheereChloe::Face(const FVector& TargetLocation, float
 
 void UStudentPerceptorJonckheereChloe::Move(const FVector& Direction)
 {
-	if (m_pStamina->GetCurrentStamina() > 0) // only move when stamina left
+	if (/*m_pStamina->GetCurrentStamina() > 0*/true) // only move when stamina left
 	{
+		FCollisionQueryParams CollisionParams{};
+		CollisionParams.AddIgnoredActor(GetOwner());
+		auto const End = GetOwner()->GetActorLocation() + Direction * 70.0f;
+		if (FHitResult HitResult{}; 
+			GetWorld()->LineTraceSingleByChannel(HitResult, GetOwner()->GetActorLocation(), End, 
+				ECC_Pawn, CollisionParams))
+		{
+			if (HitResult.bBlockingHit)
+			{
+				FRotator Rotation{0.f, 30.f,0.f};
+				GetOwner()->AddActorLocalRotation(Rotation);
+				GEngine->AddOnScreenDebugMessage(16, 1.f, FColor::Magenta, FString::Printf(TEXT("BLOCKED")));
+			}
+		}
 		Cast<APawn>(GetOwner())->AddMovementInput(Direction);
 	}
 }
@@ -474,15 +488,6 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
 	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
 	
-	if (not Zombie) // Zombie dead
-	{
-		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
-	FString::Printf(TEXT("ZOMBIE DIED")));
-		Blackboard->SetValueAsBool("SawZombie", false);
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-		return;
-	}
-	
 	FVector Dir{m_Perceptor->Flee(Zombie->GetActorLocation())};
 	m_Perceptor->Move(Dir);
 	FVector AwayFromTarget = Pawn->GetActorLocation() + Dir;
@@ -535,12 +540,16 @@ void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 
 	UObject* Object = Blackboard->GetValueAsObject("Zombie");
-	if (ABaseZombie* Zombie = Cast<ABaseZombie>(Object))
+	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
+	if (Zombie)
 	{
 		Perceptor->AttackBehavior(Zombie->GetActorLocation(), DeltaSeconds);
 	}
-	else
+	
+	if (not IsValid(Zombie))
 	{
+		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
+	FString::Printf(TEXT("ZOMBIE DIED")));
 		Blackboard->SetValueAsBool("SawZombie", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
