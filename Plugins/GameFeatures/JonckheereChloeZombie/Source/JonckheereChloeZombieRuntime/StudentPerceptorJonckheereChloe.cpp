@@ -637,6 +637,7 @@ EBTNodeResult::Type UGrab::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8*
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 	UObject* Object = Blackboard->GetValueAsObject("Item");
 	ABaseItem* Item = Cast<ABaseItem>(Object);
+	if (Item == nullptr) return EBTNodeResult::Failed;
 	
 	// Grab if not in inv
 	if (not Perceptor->HasItem(Item->GetItemType()))
@@ -734,7 +735,6 @@ EBTNodeResult::Type UFetchMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
 	
-	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 	
 	UObject* Object = Blackboard->GetValueAsObject("Medkit");
@@ -782,4 +782,62 @@ EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	}
 	return EBTNodeResult::Succeeded;
 }
+
+UMove::UMove()
+{
+	NodeName = "Move";
+	bNotifyTick = true;
+}
+
+EBTNodeResult::Type UMove::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	m_CurrIdx = 0;
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	m_Pawn = Controller->GetPawn();
+	ASurvivorPawn* Survivor = Cast<ASurvivorPawn>(m_Pawn);
+	m_Perceptor = m_Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+	m_TargetLocation = Blackboard->GetValueAsVector(BlackboardKey.SelectedKeyName);
+	m_Locations = Survivor->CalculatePath(m_TargetLocation);
+	
+	return EBTNodeResult::InProgress;
+}
+
+void UMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	if (m_Locations.IsEmpty())
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+		return;
+	}
+	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Magenta, FString::Printf(TEXT("%f %f"), m_Locations[m_CurrIdx].X, m_Locations[m_CurrIdx].Y));
+	m_TargetLocation = m_Locations[m_CurrIdx];
+	SteeringOutput Steering{m_Perceptor->Seek(m_TargetLocation)};
+	GEngine->AddOnScreenDebugMessage(8, 1.f, FColor::Magenta, FString::Printf(TEXT("%f %f"), Steering.Direction.X, Steering.Direction.Y));
+	m_Perceptor->Face(m_TargetLocation, DeltaSeconds);
+	m_Perceptor->Move(Steering.Direction);
+	
+	const float Distance{50.f};
+	if (FVector::Dist(m_Pawn->GetActorLocation(), m_Locations[m_CurrIdx]) < Distance)
+	{
+		++m_CurrIdx;
+	}
+	
+	if (m_CurrIdx > m_Locations.Num() - 1)
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
+}
+
+void UMove::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (UBlackboardData* BBData = GetBlackboardAsset())
+	{
+		BlackboardKey.ResolveSelectedKey(*BBData);
+	}
+}
+
+
 

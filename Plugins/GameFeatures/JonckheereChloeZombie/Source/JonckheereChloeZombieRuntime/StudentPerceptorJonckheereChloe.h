@@ -211,3 +211,26 @@ public:
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UMove final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UMove();
+	
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector BlackboardKey;
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;	
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
+
+private:
+	TArray<FVector> m_Locations{};
+	FVector m_TargetLocation{};
+	UStudentPerceptorJonckheereChloe* m_Perceptor{};
+	APawn* m_Pawn{};
+	int m_CurrIdx{};
+};
