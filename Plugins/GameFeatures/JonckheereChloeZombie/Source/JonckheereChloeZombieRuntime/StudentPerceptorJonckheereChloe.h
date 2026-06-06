@@ -62,6 +62,7 @@ public:
 	
 	// ITEMS
 	bool UseItem(const EItemType& ItemType);
+	bool HasItem(const EItemType& Item);
 private:
 	UBlackboardComponent* m_pBlackBoard{};
 	UInventoryComponent* m_pInventory{};
@@ -75,7 +76,6 @@ private:
 	FString ItemEnumToString(const EItemType& ItemType) const;
 	int GetFreeSlot() const;
 	void GrabItem(ABaseItem* Item);
-	bool HasItem(ABaseItem* Item);
 	void SaveObject(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
 	bool IsMoreValuable(ABaseItem* Item);
@@ -119,18 +119,6 @@ class JONCKHEERECHLOEZOMBIERUNTIME_API USprint final : public UBTTaskNode
 	
 public:
 	USprint() = default;
-	
-protected:
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-};
-
-UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UStopSprint final : public UBTTaskNode
-{
-	GENERATED_BODY()
-	
-public:
-	UStopSprint() = default;
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

@@ -84,7 +84,7 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 			if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
 			
 			// Grab if not in inv
-			if (not HasItem(Item))
+			if (not HasItem(Item->GetItemType()))
 			{
 				GrabItem(Item);
 			}
@@ -172,14 +172,13 @@ void UStudentPerceptorJonckheereChloe::GrabItem(ABaseItem* Item)
 	}
 }
 
-bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item)
+bool UStudentPerceptorJonckheereChloe::HasItem(const EItemType& Item)
 {
 	m_ItemsInInventory = m_pInventory->GetInventory();
 	
-	if (Item->GetItemType() == EItemType::Food)
+	if (Item == EItemType::Food)
 	{
 		int NrFood{};
-		const int MaxNrFood{2};
 		for (const auto& ItemInv : m_ItemsInInventory)
 		{
 			if (ItemInv == nullptr) continue;
@@ -188,7 +187,7 @@ bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item)
 				NrFood++;
 			}
 		}
-		if (NrFood >= MaxNrFood)
+		if (NrFood >= 1)
 			return true;
 	}
 	else
@@ -196,7 +195,7 @@ bool UStudentPerceptorJonckheereChloe::HasItem(ABaseItem* Item)
 		for (const auto& ItemInv : m_ItemsInInventory)
 		{
 			if (ItemInv == nullptr) continue;
-			if (Item->GetItemType() == ItemInv->GetItemType())
+			if (Item == ItemInv->GetItemType())
 			{
 				return true;
 			}
@@ -579,6 +578,7 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
 	FString::Printf(TEXT("SAFE SPOT")));
 		Blackboard->SetValueAsBool("SawZombie", false);
+		Cast<ASurvivorPawn>(Pawn)->StopRunning();
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
@@ -588,6 +588,8 @@ EBTNodeResult::Type UFleeTask::AbortTask(UBehaviorTreeComponent& OwnerComp, uint
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
 	Cast<ASurvivorPawn>(Pawn)->StopRunning();
+	GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
+	FString::Printf(TEXT("STOP RUNNING")));
 	return EBTNodeResult::Aborted;
 }
 
@@ -596,14 +598,6 @@ EBTNodeResult::Type USprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
 	Cast<ASurvivorPawn>(Pawn)->StartRunning();
-	return EBTNodeResult::Succeeded;
-}
-
-EBTNodeResult::Type UStopSprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
-{
-	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
-	Cast<ASurvivorPawn>(Pawn)->StopRunning();
 	return EBTNodeResult::Succeeded;
 }
 
@@ -764,7 +758,10 @@ EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	APawn* Pawn = Controller->GetPawn();
 	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	if (Perceptor->UseItem(EItemType::Food))
-		Controller->GetBlackboardComponent()->SetValueAsBool("HasFood", false);
+	{
+		if (not Perceptor->HasItem(EItemType::Food))
+			Controller->GetBlackboardComponent()->SetValueAsBool("HasFood", false);
+	}
 	return EBTNodeResult::Succeeded;
 }
 
