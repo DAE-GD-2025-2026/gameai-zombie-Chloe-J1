@@ -583,6 +583,14 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	}
 }
 
+EBTNodeResult::Type UFleeTask::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	Cast<ASurvivorPawn>(Pawn)->StopRunning();
+	return EBTNodeResult::Aborted;
+}
+
 EBTNodeResult::Type USprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
