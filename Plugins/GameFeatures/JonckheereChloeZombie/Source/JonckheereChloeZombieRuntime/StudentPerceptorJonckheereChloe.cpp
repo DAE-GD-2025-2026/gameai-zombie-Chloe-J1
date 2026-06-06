@@ -83,20 +83,7 @@ void UStudentPerceptorJonckheereChloe::OnPerceptionUpdated(AActor* Actor, FAISti
 	FString::Printf(TEXT("Item: %s"), *ItemEnumToString(Item->GetItemType())));
 			if (Item->GetItemType() == EItemType::Garbage) return; // skip garbage
 			
-			// Grab if not in inv
-			if (not HasItem(Item->GetItemType()))
-			{
-				GrabItem(Item);
-			}
-			else if (IsMoreValuable(Item))
-			{
-				GrabItem(Item);
-			}
-			else
-			{
-				SaveObject(Item);
-			}
-			
+			m_pBlackBoard->SetValueAsObject("Item", Item);
 			SpecifySeenItem(Item->GetItemType());
 			m_pBlackBoard->SetValueAsBool("SawItem", true);
 			m_pBlackBoard->SetValueAsVector("ItemLocation", Item->GetActorLocation());
@@ -634,6 +621,37 @@ void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
 		Blackboard->SetValueAsBool("SawZombie", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
+}
+
+UGrab::UGrab()
+{
+	NodeName = "Grab";
+}
+
+EBTNodeResult::Type UGrab::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+	UObject* Object = Blackboard->GetValueAsObject("Item");
+	ABaseItem* Item = Cast<ABaseItem>(Object);
+	
+	// Grab if not in inv
+	if (not Perceptor->HasItem(Item->GetItemType()))
+	{
+		Perceptor->GrabItem(Item);
+	}
+	else if (Perceptor->IsMoreValuable(Item))
+	{
+		Perceptor->GrabItem(Item);
+	}
+	else
+	{
+		Perceptor->SaveObject(Item);
+	}
+	return EBTNodeResult::Succeeded;
 }
 
 UFetchWeapon::UFetchWeapon()

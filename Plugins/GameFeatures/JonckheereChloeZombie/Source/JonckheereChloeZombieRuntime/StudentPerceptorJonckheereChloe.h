@@ -63,6 +63,9 @@ public:
 	// ITEMS
 	bool UseItem(const EItemType& ItemType);
 	bool HasItem(const EItemType& Item);
+	void GrabItem(ABaseItem* Item);
+	void SaveObject(ABaseItem* Item);
+	bool IsMoreValuable(ABaseItem* Item);
 private:
 	UBlackboardComponent* m_pBlackBoard{};
 	UInventoryComponent* m_pInventory{};
@@ -75,10 +78,7 @@ private:
 	
 	FString ItemEnumToString(const EItemType& ItemType) const;
 	int GetFreeSlot() const;
-	void GrabItem(ABaseItem* Item);
-	void SaveObject(ABaseItem* Item);
 	void SpecifySeenItem(const EItemType& ItemType);
-	bool IsMoreValuable(ABaseItem* Item);
 	
 	// HOUSE
 	void EnterHouse(AHouse* House);
@@ -135,6 +135,18 @@ public:
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;	
+};
+
+UCLASS()
+class JONCKHEERECHLOEZOMBIERUNTIME_API UGrab final : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+public:
+	UGrab();
+	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
