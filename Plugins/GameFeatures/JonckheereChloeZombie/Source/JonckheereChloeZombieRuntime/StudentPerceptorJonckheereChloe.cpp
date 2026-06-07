@@ -811,7 +811,7 @@ void UMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float
 	m_Perceptor->Face(m_TargetLocation, DeltaSeconds);
 	m_Perceptor->Move(Steering.Direction);
 	
-	const float Distance{50.f};
+	const float Distance{80.f};
 	if (FVector::Dist(m_Pawn->GetActorLocation(), m_Locations[m_CurrIdx]) < Distance)
 	{
 		++m_CurrIdx;
