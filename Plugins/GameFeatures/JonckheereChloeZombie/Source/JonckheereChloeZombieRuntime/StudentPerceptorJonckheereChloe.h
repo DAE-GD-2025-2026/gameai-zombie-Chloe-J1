@@ -21,10 +21,10 @@
 class ABaseItem;
 class AHouse;
 
-struct SteeringOutput final
+struct SteeringOutputJonckheereChloe final
 {
-	SteeringOutput() = default;
-	SteeringOutput(FVector Dir):
+	SteeringOutputJonckheereChloe() = default;
+	SteeringOutputJonckheereChloe(FVector Dir):
 		Direction(Dir)
 	{
 	}
@@ -48,13 +48,13 @@ public:
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 	
 	// STEERING
-	SteeringOutput Seek(const FVector& TargetLocation);
-	SteeringOutput Flee(const FVector& TargetLocation);
+	SteeringOutputJonckheereChloe Seek(const FVector& TargetLocation);
+	SteeringOutputJonckheereChloe Flee(const FVector& TargetLocation);
 	bool Face(const FVector& TargetLocation, float DeltaT);
 	void Move(const FVector& Direction);
-	SteeringOutput Avoid(const FVector& TargetLocation);
-	SteeringOutput Priority();
-	void AddPriorityBehavior(std::function<SteeringOutput()> behavior);
+	SteeringOutputJonckheereChloe Avoid(const FVector& TargetLocation);
+	SteeringOutputJonckheereChloe Priority();
+	void AddPriorityBehavior(std::function<SteeringOutputJonckheereChloe()> behavior);
 	void ClearPriorityBehaviors();
 	
 	// ZOMBIE
@@ -92,17 +92,17 @@ private:
 	void Shoot();
 	void UpdateHasWeapon();
 	
-	std::vector<std::function<SteeringOutput()>> m_PriorityBehaviors{};
+	std::vector<std::function<SteeringOutputJonckheereChloe()>> m_PriorityBehaviors{};
 };
 
 // TASKS
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UFleeTask final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFleeTaskJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 
 public:
-	UFleeTask();
+	UFleeTaskJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
@@ -117,24 +117,24 @@ private:
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API USprint final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API USprintJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	USprint() = default;
+	USprintJonckheereChloe() = default;
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UAttackTask final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UAttackTaskJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UAttackTask();
+	UAttackTaskJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
@@ -146,24 +146,24 @@ private:
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UGrab final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UGrabJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UGrab();
+	UGrabJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchWeapon final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchWeaponJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UFetchWeapon();
+	UFetchWeaponJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
@@ -173,60 +173,60 @@ private:
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchFood final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchFoodJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UFetchFood();
+	UFetchFoodJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchMedkit final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UFetchMedkitJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UFetchMedkit();
+	UFetchMedkitJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UConsumeMedkit final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UConsumeMedkitJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UConsumeMedkit();
+	UConsumeMedkitJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UConsumeFood final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UConsumeFoodJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UConsumeFood();
+	UConsumeFoodJonckheereChloe();
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
 
 UCLASS()
-class JONCKHEERECHLOEZOMBIERUNTIME_API UMove final : public UBTTaskNode
+class JONCKHEERECHLOEZOMBIERUNTIME_API UMoveJonckheereChloe final : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UMove();
+	UMoveJonckheereChloe();
 	
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector BlackboardKey;

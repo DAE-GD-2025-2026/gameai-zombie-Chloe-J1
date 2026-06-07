@@ -342,21 +342,21 @@ void UStudentPerceptorJonckheereChloe::AttackBehavior(const FVector& TargetLocat
 	// Walk backwards whilst trying to shoot a zombie
 	if (FVector::Dist(GetOwner()->GetActorLocation(), TargetLocation) <= Radius)
 	{
-		SteeringOutput Steering = Flee(TargetLocation);
+		SteeringOutputJonckheereChloe Steering = Flee(TargetLocation);
 		Move(Steering.Direction);
 	}
 }
 
-SteeringOutput UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
+SteeringOutputJonckheereChloe UStudentPerceptorJonckheereChloe::Seek(const FVector& TargetLocation)
 {
 	FVector Dir{(FVector(TargetLocation) - GetOwner()->GetActorLocation()).GetSafeNormal()};
 	Dir.Z = 0;
 	return Dir;
 }
 
-SteeringOutput UStudentPerceptorJonckheereChloe::Flee(const FVector& TargetLocation)
+SteeringOutputJonckheereChloe UStudentPerceptorJonckheereChloe::Flee(const FVector& TargetLocation)
 {
-	SteeringOutput Steering{Seek(TargetLocation)};
+	SteeringOutputJonckheereChloe Steering{Seek(TargetLocation)};
 	Steering.Direction *= -1;
 	return  Steering;
 }
@@ -414,9 +414,9 @@ void UStudentPerceptorJonckheereChloe::Move(const FVector& Direction)
 	}
 }
 
-SteeringOutput UStudentPerceptorJonckheereChloe::Avoid(const FVector& TargetLocation)
+SteeringOutputJonckheereChloe UStudentPerceptorJonckheereChloe::Avoid(const FVector& TargetLocation)
 {
-	SteeringOutput Steering{};
+	SteeringOutputJonckheereChloe Steering{};
 	constexpr float StepSize{30.f};
 	FCollisionQueryParams CollisionParams{};
 	CollisionParams.AddIgnoredActor(GetOwner());
@@ -445,9 +445,9 @@ SteeringOutput UStudentPerceptorJonckheereChloe::Avoid(const FVector& TargetLoca
 	return Steering;
 }
 
-SteeringOutput UStudentPerceptorJonckheereChloe::Priority()
+SteeringOutputJonckheereChloe UStudentPerceptorJonckheereChloe::Priority()
 {
-	SteeringOutput Steering = {};
+	SteeringOutputJonckheereChloe Steering = {};
 
 	for (auto Behavior : m_PriorityBehaviors)
 	{
@@ -462,7 +462,7 @@ SteeringOutput UStudentPerceptorJonckheereChloe::Priority()
 	return Steering;
 }
 
-void UStudentPerceptorJonckheereChloe::AddPriorityBehavior(std::function<SteeringOutput()> behavior)
+void UStudentPerceptorJonckheereChloe::AddPriorityBehavior(std::function<SteeringOutputJonckheereChloe()> behavior)
 {
 	m_PriorityBehaviors.push_back(behavior);
 }
@@ -512,13 +512,13 @@ bool UStudentPerceptorJonckheereChloe::IsMoreValuable(ABaseItem* Item)
 }
 
 // TASKS
-UFleeTask::UFleeTask()
+UFleeTaskJonckheereChloe::UFleeTaskJonckheereChloe()
 {
 	NodeName = "Flee";
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UFleeTaskJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	m_Pawn = Controller->GetPawn();
@@ -544,9 +544,9 @@ EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, ui
 	return EBTNodeResult::InProgress;
 }
 
-void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UFleeTaskJonckheereChloe::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	SteeringOutput Output = m_Perceptor->Priority();
+	SteeringOutputJonckheereChloe Output = m_Perceptor->Priority();
 
 	m_Perceptor->Move(Output.Direction);
 	m_Perceptor->Face(m_Pawn->GetActorLocation() + Output.Direction * 100.f, DeltaSeconds);
@@ -563,7 +563,7 @@ void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, f
 	}
 }
 
-EBTNodeResult::Type UFleeTask::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UFleeTaskJonckheereChloe::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Cast<ASurvivorPawn>(m_Pawn)->StopRunning();
 	GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
@@ -571,7 +571,7 @@ EBTNodeResult::Type UFleeTask::AbortTask(UBehaviorTreeComponent& OwnerComp, uint
 	return EBTNodeResult::Aborted;
 }
 
-EBTNodeResult::Type USprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type USprintJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
@@ -579,13 +579,13 @@ EBTNodeResult::Type USprint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint
 	return EBTNodeResult::Succeeded;
 }
 
-UAttackTask::UAttackTask()
+UAttackTaskJonckheereChloe::UAttackTaskJonckheereChloe()
 {
 	NodeName = "Attack";
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UAttackTaskJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
@@ -598,7 +598,7 @@ EBTNodeResult::Type UAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, 
 	return EBTNodeResult::InProgress;
 }
 
-void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UAttackTaskJonckheereChloe::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	if (m_Zombie)
 	{
@@ -614,12 +614,12 @@ void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
 	}
 }
 
-UGrab::UGrab()
+UGrabJonckheereChloe::UGrabJonckheereChloe()
 {
 	NodeName = "Grab";
 }
 
-EBTNodeResult::Type UGrab::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UGrabJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
@@ -646,12 +646,12 @@ EBTNodeResult::Type UGrab::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8*
 	return EBTNodeResult::Succeeded;
 }
 
-UFetchWeapon::UFetchWeapon()
+UFetchWeaponJonckheereChloe::UFetchWeaponJonckheereChloe()
 {
 	NodeName = "Fetch weapon";
 }
 
-EBTNodeResult::Type UFetchWeapon::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UFetchWeaponJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
@@ -684,18 +684,18 @@ EBTNodeResult::Type UFetchWeapon::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	return EBTNodeResult::Failed;
 }
 
-void UFetchWeapon::SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard)
+void UFetchWeaponJonckheereChloe::SetWeaponLocation(const FVector& Location, UBlackboardComponent* Blackboard)
 {
 	Blackboard->SetValueAsVector("WeaponLocation", Location);
 	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Green, FString::Printf(TEXT("Fetching pistol")));
 }
 
-UFetchFood::UFetchFood()
+UFetchFoodJonckheereChloe::UFetchFoodJonckheereChloe()
 {
 	NodeName = "Fetch food";
 }
 
-EBTNodeResult::Type UFetchFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UFetchFoodJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	
@@ -714,12 +714,12 @@ EBTNodeResult::Type UFetchFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, u
 	return EBTNodeResult::Failed;
 }
 
-UFetchMedkit::UFetchMedkit()
+UFetchMedkitJonckheereChloe::UFetchMedkitJonckheereChloe()
 {
 	NodeName = "Fetch medkit";
 }
 
-EBTNodeResult::Type UFetchMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UFetchMedkitJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	
@@ -738,12 +738,12 @@ EBTNodeResult::Type UFetchMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	return EBTNodeResult::Failed;
 }
 
-UConsumeMedkit::UConsumeMedkit()
+UConsumeMedkitJonckheereChloe::UConsumeMedkitJonckheereChloe()
 {
 	NodeName = "Consume medkit";
 }
 
-EBTNodeResult::Type UConsumeMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UConsumeMedkitJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
@@ -756,12 +756,12 @@ EBTNodeResult::Type UConsumeMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	return EBTNodeResult::Failed;
 }
 
-UConsumeFood::UConsumeFood()
+UConsumeFoodJonckheereChloe::UConsumeFoodJonckheereChloe()
 {
 	NodeName = "Consume food";
 }
 
-EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UConsumeFoodJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	APawn* Pawn = Controller->GetPawn();
@@ -777,13 +777,13 @@ EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	return EBTNodeResult::Failed;
 }
 
-UMove::UMove()
+UMoveJonckheereChloe::UMoveJonckheereChloe()
 {
 	NodeName = "Move";
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UMove::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UMoveJonckheereChloe::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	m_CurrIdx = 0;
 	AAIController* Controller = OwnerComp.GetAIOwner();
@@ -797,7 +797,7 @@ EBTNodeResult::Type UMove::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8*
 	return EBTNodeResult::InProgress;
 }
 
-void UMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UMoveJonckheereChloe::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	if (m_Locations.IsEmpty())
 	{
@@ -806,7 +806,7 @@ void UMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float
 	}
 	GEngine->AddOnScreenDebugMessage(7, 1.f, FColor::Magenta, FString::Printf(TEXT("%f %f"), m_Locations[m_CurrIdx].X, m_Locations[m_CurrIdx].Y));
 	m_TargetLocation = m_Locations[m_CurrIdx];
-	SteeringOutput Steering{m_Perceptor->Seek(m_TargetLocation)};
+	SteeringOutputJonckheereChloe Steering{m_Perceptor->Seek(m_TargetLocation)};
 	GEngine->AddOnScreenDebugMessage(8, 1.f, FColor::Magenta, FString::Printf(TEXT("%f %f"), Steering.Direction.X, Steering.Direction.Y));
 	m_Perceptor->Face(m_TargetLocation, DeltaSeconds);
 	m_Perceptor->Move(Steering.Direction);
@@ -823,7 +823,7 @@ void UMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float
 	}
 }
 
-void UMove::InitializeFromAsset(UBehaviorTree& Asset)
+void UMoveJonckheereChloe::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
