@@ -52,6 +52,7 @@ void UStudentPerceptorJonckheereChloe::TickComponent(float DeltaTime, ELevelTick
 	FActorComponentTickFunction* ThisTickFunction)
 
 {
+	if (m_pBlackBoard == nullptr) return;
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	m_pBlackBoard->SetValueAsFloat("Health", m_pHealth->GetHealth()); // Always update health
 	m_pBlackBoard->SetValueAsFloat("Stamina", m_pStamina->GetCurrentStamina()); // Always update stamina
@@ -126,8 +127,6 @@ int UStudentPerceptorJonckheereChloe::GetFreeSlot() const
 	{
 		if (m_ItemsInInventory[index] == nullptr)
 		{
-			GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("Free slot: %i"), index));
 			return index;
 		}
 	}
@@ -230,6 +229,15 @@ void UStudentPerceptorJonckheereChloe::SpecifySeenItem(const EItemType& ItemType
 	}
 }
 
+void UStudentPerceptorJonckheereChloe::ShootLine()
+{
+	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
+		FString::Printf(TEXT("SHOOT")));
+	FVector Start = GetOwner()->GetActorLocation();
+	FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
+	DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+}
+
 void UStudentPerceptorJonckheereChloe::EnterHouse(AHouse* House)
 {
 	m_pBlackBoard->SetValueAsBool("SawHouse", true);
@@ -293,19 +301,11 @@ void UStudentPerceptorJonckheereChloe::Shoot()
 		
 			if (UseItem(PreferredWeapon))
 			{
-				GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
-		FString::Printf(TEXT("SHOOT")));
-				FVector Start = GetOwner()->GetActorLocation();
-				FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
-				DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+				ShootLine();
 			}
 			else if (UseItem(SecondChoise))
 			{
-				GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Red, 
-		FString::Printf(TEXT("SHOOT")));
-				FVector Start = GetOwner()->GetActorLocation();
-				FVector End = Start + GetOwner()->GetActorForwardVector() * 10000.f;
-				DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f);
+				ShootLine();
 			}
 		}
 		UpdateHasWeapon();
@@ -521,24 +521,24 @@ UFleeTask::UFleeTask()
 EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
-	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
+	m_Pawn = Controller->GetPawn();
+	m_Blackboard = Controller->GetBlackboardComponent();
 
-	UObject* Object = Blackboard->GetValueAsObject("Zombie");
-	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
-	if (!Zombie) return EBTNodeResult::Failed;
-	m_Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	UObject* Object = m_Blackboard->GetValueAsObject("Zombie");
+	m_Zombie = Cast<ABaseZombie>(Object);
+	if (!m_Zombie) return EBTNodeResult::Failed;
+	m_Perceptor = m_Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	m_Perceptor->ClearPriorityBehaviors();
 	
-	m_Perceptor->AddPriorityBehavior([this, Zombie]()
+	m_Perceptor->AddPriorityBehavior([this]()
 	{
-		FVector FleeDir = m_Perceptor->Flee(Zombie->GetActorLocation()).Direction;
+		FVector FleeDir = m_Perceptor->Flee(m_Zombie->GetActorLocation()).Direction;
 		return m_Perceptor->Avoid(FleeDir);
 	});
 
-	m_Perceptor->AddPriorityBehavior([this, Zombie]()
+	m_Perceptor->AddPriorityBehavior([this]()
 	{
-		return m_Perceptor->Flee(Zombie->GetActorLocation());
+		return m_Perceptor->Flee(m_Zombie->GetActorLocation());
 	});
 	
 	return EBTNodeResult::InProgress;
@@ -546,35 +546,26 @@ EBTNodeResult::Type UFleeTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, ui
 
 void UFleeTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
-	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
-
-	UObject* Object = Blackboard->GetValueAsObject("Zombie");
-	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
-	
 	SteeringOutput Output = m_Perceptor->Priority();
 
 	m_Perceptor->Move(Output.Direction);
-	m_Perceptor->Face(Pawn->GetActorLocation() + Output.Direction * 100.f, DeltaSeconds);
+	m_Perceptor->Face(m_Pawn->GetActorLocation() + Output.Direction * 100.f, DeltaSeconds);
 	
 	// Distance
 	const float SafeDistance{1500.f};
-	if (FVector::Dist(Pawn->GetActorLocation(), Zombie->GetActorLocation()) >= SafeDistance)
+	if (FVector::Dist(m_Pawn->GetActorLocation(), m_Zombie->GetActorLocation()) >= SafeDistance)
 	{
 		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
 	FString::Printf(TEXT("SAFE SPOT")));
-		Blackboard->SetValueAsBool("SawZombie", false);
-		Cast<ASurvivorPawn>(Pawn)->StopRunning();
+		m_Blackboard->SetValueAsBool("SawZombie", false);
+		Cast<ASurvivorPawn>(m_Pawn)->StopRunning();
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
 
 EBTNodeResult::Type UFleeTask::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
-	Cast<ASurvivorPawn>(Pawn)->StopRunning();
+	Cast<ASurvivorPawn>(m_Pawn)->StopRunning();
 	GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
 	FString::Printf(TEXT("STOP RUNNING")));
 	return EBTNodeResult::Aborted;
@@ -596,29 +587,29 @@ UAttackTask::UAttackTask()
 
 EBTNodeResult::Type UAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	AAIController* Controller = OwnerComp.GetAIOwner();
+	APawn* Pawn = Controller->GetPawn();
+	
+	m_Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
+	m_Blackboard = Controller->GetBlackboardComponent();
+
+	UObject* Object = m_Blackboard->GetValueAsObject("Zombie");
+	m_Zombie = Cast<ABaseZombie>(Object);
 	return EBTNodeResult::InProgress;
 }
 
 void UAttackTask::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
-	
-	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
-	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
-
-	UObject* Object = Blackboard->GetValueAsObject("Zombie");
-	ABaseZombie* Zombie = Cast<ABaseZombie>(Object);
-	if (Zombie)
+	if (m_Zombie)
 	{
-		Perceptor->AttackBehavior(Zombie->GetActorLocation(), DeltaSeconds);
+		m_Perceptor->AttackBehavior(m_Zombie->GetActorLocation(), DeltaSeconds);
 	}
 	
-	if (not IsValid(Zombie))
+	if (not IsValid(m_Zombie))
 	{
 		GEngine->AddOnScreenDebugMessage(16, 3.f, FColor::Magenta, 
 	FString::Printf(TEXT("ZOMBIE DIED")));
-		Blackboard->SetValueAsBool("SawZombie", false);
+		m_Blackboard->SetValueAsBool("SawZombie", false);
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }
@@ -707,9 +698,7 @@ UFetchFood::UFetchFood()
 EBTNodeResult::Type UFetchFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
 	
-	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 	
 	UObject* Object = Blackboard->GetValueAsObject("Food");
@@ -733,7 +722,6 @@ UFetchMedkit::UFetchMedkit()
 EBTNodeResult::Type UFetchMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* Controller = OwnerComp.GetAIOwner();
-	APawn* Pawn = Controller->GetPawn();
 	
 	UBlackboardComponent* Blackboard = Controller->GetBlackboardComponent();
 	
@@ -761,8 +749,11 @@ EBTNodeResult::Type UConsumeMedkit::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	APawn* Pawn = Controller->GetPawn();
 	UStudentPerceptorJonckheereChloe* Perceptor = Pawn->GetComponentByClass<UStudentPerceptorJonckheereChloe>();
 	if (Perceptor->UseItem(EItemType::Medkit))
+	{
 		Controller->GetBlackboardComponent()->SetValueAsBool("HasMedkit", false);
-	return EBTNodeResult::Succeeded;
+		return EBTNodeResult::Succeeded;
+	}
+	return EBTNodeResult::Failed;
 }
 
 UConsumeFood::UConsumeFood()
@@ -778,9 +769,12 @@ EBTNodeResult::Type UConsumeFood::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 	if (Perceptor->UseItem(EItemType::Food))
 	{
 		if (not Perceptor->HasItem(EItemType::Food))
+		{
 			Controller->GetBlackboardComponent()->SetValueAsBool("HasFood", false);
+			return EBTNodeResult::Succeeded;
+		}
 	}
-	return EBTNodeResult::Succeeded;
+	return EBTNodeResult::Failed;
 }
 
 UMove::UMove()
@@ -833,9 +827,9 @@ void UMove::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
-	if (UBlackboardData* BBData = GetBlackboardAsset())
+	if (UBlackboardData* BlackboardData = GetBlackboardAsset())
 	{
-		BlackboardKey.ResolveSelectedKey(*BBData);
+		BlackboardKey.ResolveSelectedKey(*BlackboardData);
 	}
 }
 

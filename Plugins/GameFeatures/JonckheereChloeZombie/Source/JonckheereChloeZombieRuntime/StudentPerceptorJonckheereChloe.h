@@ -79,6 +79,7 @@ private:
 	FString ItemEnumToString(const EItemType& ItemType) const;
 	int GetFreeSlot() const;
 	void SpecifySeenItem(const EItemType& ItemType);
+	void ShootLine();
 	
 	// HOUSE
 	void EnterHouse(AHouse* House);
@@ -110,6 +111,9 @@ protected:
 	
 private:
 	UStudentPerceptorJonckheereChloe* m_Perceptor{};
+	APawn* m_Pawn{};
+	ABaseZombie* m_Zombie{};
+	UBlackboardComponent* m_Blackboard{};
 };
 
 UCLASS()
@@ -134,7 +138,11 @@ public:
 	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;	
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+private:
+	UStudentPerceptorJonckheereChloe* m_Perceptor{};
+	UBlackboardComponent* m_Blackboard{};
+	ABaseZombie* m_Zombie{};
 };
 
 UCLASS()
